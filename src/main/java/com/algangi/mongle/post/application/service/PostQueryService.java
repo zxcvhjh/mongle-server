@@ -93,8 +93,28 @@ public class PostQueryService {
             ReactionType myReaction = myReactionsMap.get(post.getId());
             String myReactionStr = (myReaction != null) ? myReaction.name() : null;
 
-            return PostListResponse.PostSummary.from(post, author, photoUrlList, stats,
-                myReactionStr);
+            String profileImageUrl = null;
+            if (post.getStatus() == PostStatus.ACTIVE && author != null && author.getProfileImage() != null) {
+                profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage()).url();
+            }
+
+            PostListResponse.PostSummary.Author authorDto = (author != null)
+                ? new PostListResponse.PostSummary.Author(author.getMemberId(), author.getNickname(), profileImageUrl)
+                : new PostListResponse.PostSummary.Author(null, "익명의 몽글러", null);
+
+            return new PostListResponse.PostSummary(
+                post.getId(),
+                authorDto,
+                post.getContent(),
+                photoUrlList,
+                stats.likeCount(),
+                stats.dislikeCount(),
+                myReactionStr,
+                stats.commentCount(),
+                stats.viewCount(),
+                post.getCreatedDate(),
+                post.getUpdatedDate()
+            );
         }).toList();
 
         String nextCursor = createNextCursor(postsOnPage, hasNext, request.sortBy());
@@ -126,8 +146,11 @@ public class PostQueryService {
         ReactionType myReaction = myReactionsMap.get(postId);
         String myReactionStr = (myReaction != null) ? myReaction.name() : null;
 
-        String profileImageUrl =
-            (post.getStatus() == PostStatus.ACTIVE) ? author.getProfileImage() : null;
+        String profileImageUrl = null;
+        if (post.getStatus() == PostStatus.ACTIVE && author != null && author.getProfileImage() != null) {
+            profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage()).url();
+        }
+
         PostDetailResponse.Author authorDto = new PostDetailResponse.Author(
             author.getMemberId(),
             author.getNickname(),
