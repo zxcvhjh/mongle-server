@@ -31,8 +31,9 @@ public class PostViewLogService {
 
     private static final String VIEWED_POSTS_KEY_PREFIX = "viewed_posts:";
     private static final String LOCK_KEY_PREFIX = "lock:view_log:";
+    private static final String EMPTY_SENTINEL = "__empty__";
     private static final Duration VIEWED_POSTS_TTL = Duration.ofDays(7);
-    private static final Duration LAZY_LOAD_LOCK_TTL = Duration.ofSeconds(10);
+    private static final Duration LAZY_LOAD_LOCK_TTL = Duration.ofSeconds(30);
     private static final Duration EMPTY_CACHE_TTL = Duration.ofMinutes(10);
 
     public void recordView(String memberId, String postId) {
@@ -128,7 +129,6 @@ public class PostViewLogService {
                     redisTemplate.opsForSet().add(cacheKey, viewedIds);
                     redisTemplate.expire(cacheKey, VIEWED_POSTS_TTL);
                 } else {
-                    final String EMPTY_SENTINEL = "__empty__";
                     redisTemplate.opsForSet().add(cacheKey, EMPTY_SENTINEL);
                     redisTemplate.expire(cacheKey, EMPTY_CACHE_TTL);
                 }
