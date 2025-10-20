@@ -69,7 +69,7 @@ public class MapQueryService {
         List<Post> grains = postQueryRepository.findGrainsInCells(s2cellTokens, blockedAuthorIds);
 
         List<String> postIdsToCheck = grains.stream().map(Post::getId).toList();
-        Set<String> viewedPostIds = postIdsToCheck.isEmpty()
+        Set<String> viewedPostIds = (!StringUtils.hasText(memberId) || postIdsToCheck.isEmpty())
                 ? java.util.Collections.emptySet()
                 : postViewLogService.findViewedPostIdsInList(memberId, postIdsToCheck);
 
