@@ -36,7 +36,7 @@ public class MemberViewedPostEventListener {
             try {
                 PostViewLog postViewLog = PostViewLog.of(member, post);
                 postViewLogRepository.save(postViewLog);
-                log.info("게시물 조회 기록 비동기 저장 완료: MemberId={}, PostId={}", event.memberId(), event.postId());
+                log.debug("게시물 조회 기록 비동기 저장 완료: MemberId={}, PostId={}", event.memberId(), event.postId());
             } catch (DataIntegrityViolationException e) {
                 log.debug("중복된 게시물 조회로 저장을 건너뛰었습니다. memberId={}, postId={}", event.memberId(), event.postId());
             }
