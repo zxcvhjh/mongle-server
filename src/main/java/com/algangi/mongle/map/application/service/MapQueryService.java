@@ -1,5 +1,7 @@
 package com.algangi.mongle.map.application.service;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -66,6 +68,8 @@ public class MapQueryService {
         Map<Long, Long> staticCloudPostCounts = getStaticCloudPostCounts(staticClouds);
         Map<Long, Long> dynamicCloudPostCounts = getDynamicCloudPostCounts(dynamicClouds);
 
+        Instant thirtyMinutesAgo = Instant.now().minus(30, ChronoUnit.MINUTES);
+
         List<MapObjectsResponse.Grain> grainDtos = grains.stream()
             .map(post -> {
                 Member author = authors.get(post.getAuthorId());
@@ -80,13 +84,16 @@ public class MapQueryService {
                     : new MapObjectsResponse.Grain.Author(null, "익명의 몽글러", null);
 
                 boolean isViewed = viewedPostIds.contains(post.getId());
+                boolean isRecent = post.getCreatedDate().isAfter(thirtyMinutesAgo);
+                boolean hasGlareEffect = !isViewed && isRecent;
 
                 return new MapObjectsResponse.Grain(
                     post.getId(),
                     post.getLocation().getLatitude(),
                     post.getLocation().getLongitude(),
                     authorDto,
-                    isViewed
+                    isViewed,
+                    hasGlareEffect
                 );
             })
             .toList();
