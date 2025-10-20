@@ -85,6 +85,8 @@ public class MapQueryService {
 
         Instant thirtyMinutesAgo = Instant.now().minus(30, ChronoUnit.MINUTES);
 
+        boolean isLoggedIn = StringUtils.hasText(memberId);
+
         List<MapObjectsResponse.Grain> grainDtos = grains.stream()
             .map(post -> {
                 Member author = authors.get(post.getAuthorId());
@@ -100,8 +102,8 @@ public class MapQueryService {
                     : new MapObjectsResponse.Grain.Author(null, "익명의 몽글러", null);
 
                 boolean isViewed = viewedPostIds.contains(post.getId());
-                boolean isRecent = post.getCreatedDate().isAfter(thirtyMinutesAgo);
-                boolean hasGlareEffect = StringUtils.hasText(memberId) && !isViewed && isRecent;
+                boolean isRecent = !post.getCreatedDate().isBefore(thirtyMinutesAgo);
+                boolean hasGlareEffect = isLoggedIn && !isViewed && isRecent;
 
                 return new MapObjectsResponse.Grain(
                     post.getId(),
