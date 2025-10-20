@@ -1,5 +1,6 @@
 package com.algangi.mongle.post.application.service;
 
+import com.algangi.mongle.post.presentation.mapper.PostResponseMapper;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -58,6 +59,7 @@ public class PostQueryService {
     private final DynamicCloudRepository dynamicCloudRepository;
     private final StaticCloudRepository staticCloudRepository;
     private final ReactionQueryService reactionQueryService;
+    private final PostResponseMapper postResponseMapper;
 
     public PostListResponse getPostList(PostListRequest request, String currentMemberId) {
         validateCloudExists(request);
@@ -86,35 +88,15 @@ public class PostQueryService {
         );
 
         List<PostListResponse.PostSummary> summaries = postsOnPage.stream().map(post -> {
-            Member author = authors.get(post.getAuthorId());
+            Member author = authors.get(post.getAuthorId()); // 작성자 정보 가져오기 (Nullable)
             List<String> photoUrlList = photoUrlsMap.getOrDefault(post.getId(),
-                Collections.emptyList());
-            PostStats stats = statsMap.getOrDefault(post.getId(), PostStats.empty());
-            ReactionType myReaction = myReactionsMap.get(post.getId());
-            String myReactionStr = (myReaction != null) ? myReaction.name() : null;
+                Collections.emptyList()); // 사진 URL 목록 가져오기
+            PostStats stats = statsMap.getOrDefault(post.getId(), PostStats.empty()); // 통계 정보 가져오기
+            ReactionType myReaction = myReactionsMap.get(post.getId()); // 내 리액션 정보 가져오기
+            String myReactionStr = (myReaction != null) ? myReaction.name() : null; // 문자열로 변환
 
-            String profileImageUrl = null;
-            if (post.getStatus() == PostStatus.ACTIVE && author != null && author.getProfileImage() != null) {
-                profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage()).url();
-            }
-
-            PostListResponse.PostSummary.Author authorDto = (author != null)
-                ? new PostListResponse.PostSummary.Author(author.getMemberId(), author.getNickname(), profileImageUrl)
-                : new PostListResponse.PostSummary.Author(null, "익명의 몽글러", null);
-
-            return new PostListResponse.PostSummary(
-                post.getId(),
-                authorDto,
-                post.getContent(),
-                photoUrlList,
-                stats.likeCount(),
-                stats.dislikeCount(),
-                myReactionStr,
-                stats.commentCount(),
-                stats.viewCount(),
-                post.getCreatedDate(),
-                post.getUpdatedDate()
-            );
+            // 매퍼 호출! 필요한 정보를 모두 넘겨주면 끝
+            return postResponseMapper.toPostSummary(post, author, photoUrlList, stats, myReactionStr);
         }).toList();
 
         String nextCursor = createNextCursor(postsOnPage, hasNext, request.sortBy());
