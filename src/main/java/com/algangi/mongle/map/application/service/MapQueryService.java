@@ -3,9 +3,11 @@ package com.algangi.mongle.map.application.service;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.algangi.mongle.postViewLog.application.service.PostViewLogService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +40,7 @@ public class MapQueryService {
     private final MemberFinder memberFinder;
     private final S2PolygonConverter s2PolygonConverter;
     private final BlockQueryService blockQueryService;
+    private final PostViewLogService postViewLogService;
 
     public MapObjectsResponse getMapObjects(MapObjectsRequest request, String memberId) {
         List<String> s2cellTokens = s2CellService.getCellsForRect(
@@ -51,6 +54,9 @@ public class MapQueryService {
         List<String> blockedAuthorIds = blockQueryService.getBlockedUserIds(memberId);
 
         List<Post> grains = postQueryRepository.findGrainsInCells(s2cellTokens, blockedAuthorIds);
+
+        List<String> postIdsToCheck = grains.stream().map(Post::getId).toList();
+        Set<String> viewedPostIds = postViewLogService.findViewedPostIdsInList(memberId, postIdsToCheck);
 
         List<StaticCloud> staticClouds = staticCloudRepository.findCloudsInCells(s2cellTokens);
         List<DynamicCloud> dynamicClouds = dynamicCloudRepository.findActiveCloudsInCells(
@@ -73,11 +79,14 @@ public class MapQueryService {
                     author.getNickname(), profileImageUrl)
                     : new MapObjectsResponse.Grain.Author(null, "익명의 몽글러", null);
 
+                boolean isViewed = viewedPostIds.contains(post.getId());
+
                 return new MapObjectsResponse.Grain(
                     post.getId(),
                     post.getLocation().getLatitude(),
                     post.getLocation().getLongitude(),
-                    authorDto
+                    authorDto,
+                    isViewed
                 );
             })
             .toList();

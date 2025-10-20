@@ -1,12 +1,17 @@
 package com.algangi.mongle.postViewLog.application.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +41,30 @@ public class PostViewLogService {
         if (Boolean.TRUE.equals(hasKey)) {
             redisTemplate.expire(key, VIEWED_POSTS_TTL);
         }
+    }
+
+    public Set<String> findViewedPostIdsInList(String memberId, List<String> postIds) {
+        if (memberId == null || CollectionUtils.isEmpty(postIds)) {
+            return Collections.emptySet();
+        }
+
+        String key = getKey(memberId);
+        var serializer = redisTemplate.getStringSerializer();
+
+        List<Object> results = redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+            for (String postId : postIds) {
+                connection.setCommands().sIsMember(serializer.serialize(key), serializer.serialize(postId));
+            }
+            return null;
+        });
+
+        Set<String> viewedPostIds = new HashSet<>();
+        for (int i = 0; i < results.size(); i++) {
+            if (Boolean.TRUE.equals(results.get(i))) {
+                viewedPostIds.add(postIds.get(i));
+            }
+        }
+        return viewedPostIds;
     }
 
     private String getKey(String memberId) {

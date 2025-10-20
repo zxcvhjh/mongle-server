@@ -13,7 +13,8 @@ public record MapObjectsResponse(
         String postId,
         double latitude,
         double longitude,
-        Author author
+        Author author,
+        boolean isViewed
     ) {
 
 
