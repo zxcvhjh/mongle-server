@@ -64,7 +64,7 @@ CREATE TABLE post (
     updated_date DATETIME(6) NOT NULL,
     view_count BIGINT NOT NULL,
     author_id VARCHAR(255) NOT NULL,
-    content VARCHAR(255) NOT NULL,
+    content VARCHAR(2000) NOT NULL,
     id VARCHAR(255) NOT NULL,
     s2token_id VARCHAR(255) NOT NULL,
     status ENUM ('ACTIVE','DELETED_BY_ADMIN','DELETED_BY_USER','EXPIRED','UPLOADING') NOT NULL,

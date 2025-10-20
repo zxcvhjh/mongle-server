@@ -1,5 +1,6 @@
 package com.algangi.mongle.post.application.service;
 
+import com.algangi.mongle.member.domain.model.MemberRole;
 import java.util.List;
 import java.util.Optional;
 
@@ -54,8 +55,11 @@ public class PostCreationService {
         Member author = memberFinder.getMemberWithLockOrThrow(authorId);
 
         requireActive(author);
-        // 3분에 게시물 최대 하나 생성 가능
-        postRateLimiter.checkRateLimit(authorId);
+
+        // 관리자가 아닌 경우에만 3분 글쓰기 제한 적용
+        if (author.getMemberRole() != MemberRole.ADMIN) {
+            postRateLimiter.checkRateLimit(authorId);
+        }
 
         // 회원당 게시물 최대 5개 유지
         long existingPostCount = postRepository.countByAuthorIdAndStatus(authorId,
