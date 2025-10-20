@@ -1,11 +1,16 @@
 package com.algangi.mongle.member.presentation.controller;
 
+import com.algangi.mongle.member.presentation.dto.UpdateProfileImageRequest;
+import com.algangi.mongle.member.presentation.dto.UpdateProfileImageResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -53,6 +58,20 @@ public class UserController {
     ) {
         memberService.withdrawMember(userDetails.userId());
         return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    /**
+     * 현재 로그인된 사용자의 프로필 이미지를 변경하거나 삭제합니다.
+     */
+    @PutMapping("/profile-image") // <<< 신규 엔드포인트 메소드
+    public ResponseEntity<ApiResponse<UpdateProfileImageResponse>> updateProfileImage(
+        @AuthenticationPrincipal CustomUserDetails userDetails,
+        @Valid @RequestBody UpdateProfileImageRequest request
+    ) {
+        String userId = userDetails.userId();
+        // 실제 로직은 MemberProfileService에 위임할 예정
+        UpdateProfileImageResponse response = memberProfileService.updateProfileImage(userId, request.fileKey());
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
 }
