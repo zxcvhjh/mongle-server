@@ -102,8 +102,8 @@ public class MapQueryService {
                     : new MapObjectsResponse.Grain.Author(null, "익명의 몽글러", null);
 
                 boolean isViewed = viewedPostIds.contains(post.getId());
-                boolean isRecent = !post.getCreatedDate().isBefore(thirtyMinutesAgo);
-                boolean hasGlareEffect = isLoggedIn && !isViewed && isRecent;
+                boolean isPostCreatedRecently = !post.getCreatedDate().isBefore(thirtyMinutesAgo);
+                boolean isRecent = isLoggedIn && !isViewed && isPostCreatedRecently;
 
                 return new MapObjectsResponse.Grain(
                     post.getId(),
@@ -111,7 +111,7 @@ public class MapQueryService {
                     post.getLocation().getLongitude(),
                     authorDto,
                     isViewed,
-                    hasGlareEffect
+                    isRecent
                 );
             })
             .toList();

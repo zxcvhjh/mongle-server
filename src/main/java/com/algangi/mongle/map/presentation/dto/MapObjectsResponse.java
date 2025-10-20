@@ -15,7 +15,7 @@ public record MapObjectsResponse(
         double longitude,
         Author author,
         boolean isViewed,
-        boolean hasGlareEffect
+        boolean isRecent
     ) {
 
 
