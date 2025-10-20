@@ -33,6 +33,11 @@ public class PostViewLogService {
     private static final Duration LAZY_LOAD_LOCK_TTL = Duration.ofSeconds(10);
 
     public void recordView(String memberId, String postId) {
+        if (memberId == null || memberId.isBlank() || postId == null || postId.isBlank()) {
+            log.warn("recordView called with invalid args. memberId='{}', postId='{}'", memberId, postId);
+            return;
+        }
+
         String key = getKey(memberId);
 
         redisTemplate.execute(
