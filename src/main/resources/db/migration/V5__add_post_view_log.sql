@@ -18,3 +18,4 @@ ALTER TABLE post_view_log ADD CONSTRAINT fk_post_view_log_post FOREIGN KEY (post
 
 -- Create Index
 CREATE INDEX idx_post_view_log_member_id_created_date ON post_view_log (member_id, created_date);
+CREATE INDEX idx_post_view_log_created_date ON post_view_log (created_date);
