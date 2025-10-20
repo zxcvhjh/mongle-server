@@ -33,18 +33,14 @@ public class MemberViewedPostEventListener {
             Member member = memberFinder.getMemberOrThrow(event.memberId());
             Post post = postFinder.getPostOrThrow(event.postId());
 
-            if (postViewLogRepository.existsByMemberAndPost(member, post)) {
-                log.info("이미 조회 기록이 존재하여 중복 저장을 방지했습니다. MemberId={}, PostId={}", event.memberId(), event.postId());
-                return;
+            try {
+                PostViewLog postViewLog = PostViewLog.of(member, post);
+                postViewLogRepository.save(postViewLog);
+                log.info("게시물 조회 기록 비동기 저장 완료: MemberId={}, PostId={}", event.memberId(), event.postId());
+            } catch (DataIntegrityViolationException e) {
+                log.debug("중복된 게시물 조회로 저장을 건너뛰었습니다. memberId={}, postId={}", event.memberId(), event.postId());
             }
 
-            PostViewLog postViewLog = PostViewLog.of(member, post);
-            postViewLogRepository.save(postViewLog);
-
-            log.info("게시물 조회 기록 비동기 저장 완료: MemberId={}, PostId={}", event.memberId(), event.postId());
-
-        } catch (DataIntegrityViolationException e) {
-            log.warn("게시물 조회 기록 저장 중 UNIQUE 제약조건 위반 발생. (동시성 이슈 추정) MemberId={}, PostId={}", event.memberId(), event.postId());
         } catch (Exception e) {
             log.error("게시물 조회 기록 저장 중 예상치 못한 오류 발생. MemberId={}, PostId={}", event.memberId(), event.postId(), e);
         }

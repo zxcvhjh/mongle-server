@@ -15,8 +15,6 @@ import java.util.List;
 import java.util.stream.Stream;
 
 public interface PostViewLogRepository extends JpaRepository<PostViewLog, String> {
-    boolean existsByMemberAndPost(Member member, Post post);
-
     @Modifying(clearAutomatically = true)
     @Transactional
     @Query("DELETE FROM PostViewLog pvl WHERE pvl.member.memberId = :memberId")
