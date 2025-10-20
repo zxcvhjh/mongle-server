@@ -134,7 +134,7 @@ public class PostQueryService {
             try {
                 postViewLogService.recordView(currentMemberId, postId);
             } catch (Exception e) {
-                log.warn("Failed to refresh view log TTL in Redis for map query.", e);
+                log.warn("Failed to record view in Redis.", e);
             }
 
             eventPublisher.publishEvent(new MemberViewedPostEvent(currentMemberId, postId));
