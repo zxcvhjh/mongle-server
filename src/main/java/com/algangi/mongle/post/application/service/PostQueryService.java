@@ -66,6 +66,14 @@ public class PostQueryService {
     public PostListResponse getPostList(PostListRequest request, String currentMemberId) {
         validateCloudExists(request);
 
+        if (currentMemberId != null) {
+            try {
+                postViewLogService.refreshViewLogTtl(currentMemberId);
+            } catch (Exception e) {
+                log.warn("Failed to refresh view log TTL in Redis for memberId {}: {}", currentMemberId, e.getMessage());
+            }
+        }
+
         List<String> blockedAuthorIds = blockQueryService.getBlockedUserIds(currentMemberId);
 
         List<Post> fetchedPosts = postQueryRepository.findPostsByCondition(request,
