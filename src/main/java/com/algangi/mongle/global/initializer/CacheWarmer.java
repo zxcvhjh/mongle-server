@@ -4,11 +4,12 @@ import com.algangi.mongle.postViewLog.domain.model.PostViewLog;
 import com.algangi.mongle.postViewLog.domain.repository.PostViewLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +34,7 @@ public class CacheWarmer implements ApplicationRunner {
 
     @Override
     @Transactional(readOnly = true)
+    @SchedulerLock(name = "cacheWarmer", lockAtMostFor = "PT10M")
     public void run(ApplicationArguments args) {
         log.info("[CacheWarmer] 최근 72시간 조회 기록을 Redis에 적재 시작");
 
@@ -52,7 +54,7 @@ public class CacheWarmer implements ApplicationRunner {
                 return;
             }
 
-            var serializer = new StringRedisSerializer();
+            RedisSerializer<String> serializer = redisTemplate.getStringSerializer();
             redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
                 viewsByMember.forEach((memberId, postIds) -> {
                     String key = VIEWED_POSTS_KEY_PREFIX + memberId;
