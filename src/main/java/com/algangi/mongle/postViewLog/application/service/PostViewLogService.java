@@ -9,6 +9,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -51,10 +52,8 @@ public class PostViewLogService {
     }
 
     public void refreshViewLogTtl(String memberId) {
-        String key = getKey(memberId);
-
-        Boolean hasKey = redisTemplate.hasKey(key);
-        if (Boolean.TRUE.equals(hasKey)) {
+        if (StringUtils.hasText(memberId)) {
+            String key = getKey(memberId);
             redisTemplate.expire(key, VIEWED_POSTS_TTL);
         }
     }
