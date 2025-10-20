@@ -116,6 +116,7 @@ public class PostQueryService {
         return new PostListResponse(summaries, nextCursor, hasNext);
     }
 
+    @Transactional(readOnly = false)
     public PostDetailResponse getPostDetail(String postId, String currentMemberId) {
         Post post = postFinder.getPostOrThrow(postId);
 
