@@ -26,11 +26,13 @@ public class PostViewLogService {
     private final RedisTemplate<String, String> redisTemplate;
     private final RedisScript<Long> recordViewScript;
     private final PostViewLogRepository postViewLogRepository;
+    private final RedisScript<Long> unlockScript;
 
     private static final String VIEWED_POSTS_KEY_PREFIX = "viewed_posts:";
     private static final String LOCK_KEY_PREFIX = "lock:view_log:";
     private static final Duration VIEWED_POSTS_TTL = Duration.ofDays(7);
     private static final Duration LAZY_LOAD_LOCK_TTL = Duration.ofSeconds(10);
+    private static final Duration EMPTY_CACHE_TTL = Duration.ofMinutes(10);
 
     public void recordView(String memberId, String postId) {
         if (memberId == null || memberId.isBlank() || postId == null || postId.isBlank()) {
@@ -105,7 +107,8 @@ public class PostViewLogService {
 
     private void lazyLoadViewLogsIntoCache(String memberId) {
         String lockKey = getLockKey(memberId);
-        Boolean lockAcquired = redisTemplate.opsForValue().setIfAbsent(lockKey, "locked", LAZY_LOAD_LOCK_TTL);
+        String lockToken = java.util.UUID.randomUUID().toString();
+        Boolean lockAcquired = redisTemplate.opsForValue().setIfAbsent(lockKey, lockToken, LAZY_LOAD_LOCK_TTL);
 
         if (Boolean.TRUE.equals(lockAcquired)) {
             try {
@@ -114,7 +117,7 @@ public class PostViewLogService {
                     return;
                 }
 
-                log.info("[Lazy Loading] Cache miss. DB에서 조회 기록을 가져옵니다. MemberId={}", memberId);
+                log.debug("[Lazy Loading] Cache miss. DB에서 조회 기록을 가져옵니다. memberId={}", memberId);
                 Instant since = Instant.now().minus(14, ChronoUnit.DAYS);
                 List<PostViewLog> recentLogs = postViewLogRepository.findByMember_MemberIdAndCreatedDateAfter(memberId, since);
 
@@ -125,9 +128,13 @@ public class PostViewLogService {
 
                     redisTemplate.opsForSet().add(cacheKey, viewedIds);
                     redisTemplate.expire(cacheKey, VIEWED_POSTS_TTL);
+                } else {
+                    final String EMPTY_SENTINEL = "__empty__";
+                    redisTemplate.opsForSet().add(cacheKey, EMPTY_SENTINEL);
+                    redisTemplate.expire(cacheKey, EMPTY_CACHE_TTL);
                 }
             } finally {
-                redisTemplate.delete(lockKey);
+                redisTemplate.execute(unlockScript, Collections.singletonList(lockKey), lockToken);
             }
         }
     }

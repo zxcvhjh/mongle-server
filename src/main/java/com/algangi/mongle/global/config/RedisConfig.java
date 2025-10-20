@@ -78,4 +78,10 @@ public class RedisConfig {
         Resource scriptSource = new ClassPathResource("redis/record_view.lua");
         return RedisScript.of(scriptSource, Long.class);
     }
+
+    @Bean
+    public RedisScript<Long> unlockScript() {
+        Resource scriptSource = new ClassPathResource("redis/unlock_if_value_matches.lua");
+        return RedisScript.of(scriptSource, Long.class);
+    }
 }
