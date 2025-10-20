@@ -28,6 +28,7 @@ import com.algangi.mongle.post.domain.model.PostStatus;
 import com.algangi.mongle.post.domain.repository.PostQueryRepository;
 import com.algangi.mongle.staticCloud.domain.model.StaticCloud;
 import com.algangi.mongle.staticCloud.repository.StaticCloudRepository;
+import com.algangi.mongle.file.application.service.ViewUrlIssueService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;
@@ -46,6 +47,7 @@ public class MapQueryService {
     private final S2PolygonConverter s2PolygonConverter;
     private final BlockQueryService blockQueryService;
     private final PostViewLogService postViewLogService;
+    private final ViewUrlIssueService viewUrlIssueService;
 
     public MapObjectsResponse getMapObjects(MapObjectsRequest request, String memberId) {
         if (StringUtils.hasText(memberId)) {
@@ -87,9 +89,10 @@ public class MapQueryService {
             .map(post -> {
                 Member author = authors.get(post.getAuthorId());
 
-                String profileImageUrl = (post.getStatus() == PostStatus.ACTIVE && author != null)
-                    ? author.getProfileImage()
-                    : null;
+                String profileImageUrl = null;
+                if (post.getStatus() == PostStatus.ACTIVE && author != null && author.getProfileImage() != null) {
+                    profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage()).url();
+                }
 
                 MapObjectsResponse.Grain.Author authorDto = (author != null)
                     ? new MapObjectsResponse.Grain.Author(author.getMemberId(),
