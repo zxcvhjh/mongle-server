@@ -17,4 +17,4 @@ ALTER TABLE post_view_log ADD CONSTRAINT fk_post_view_log_member FOREIGN KEY (me
 ALTER TABLE post_view_log ADD CONSTRAINT fk_post_view_log_post FOREIGN KEY (post_id) REFERENCES post(id);
 
 -- Create Index
-CREATE INDEX idx_post_view_log_member_id ON post_view_log (member_id);
+CREATE INDEX idx_post_view_log_member_id_created_date ON post_view_log (member_id, created_date);
