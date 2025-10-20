@@ -1,6 +1,8 @@
 package com.algangi.mongle.postViewLog.application.service;
 
+import com.algangi.mongle.postViewLog.domain.repository.PostViewLogRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
@@ -14,11 +16,13 @@ import java.util.List;
 import java.util.Set;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class PostViewLogService {
 
     private final RedisTemplate<String, String> redisTemplate;
     private final RedisScript<Long> recordViewScript;
+    private final PostViewLogRepository postViewLogRepository;
 
     private static final String VIEWED_POSTS_KEY_PREFIX = "viewed_posts:";
     private static final Duration VIEWED_POSTS_TTL = Duration.ofDays(7);
@@ -65,6 +69,16 @@ public class PostViewLogService {
             }
         }
         return viewedPostIds;
+    }
+
+    public void cleanupViewLogs(String memberId) {
+        if (memberId == null || memberId.isBlank()) {
+            log.warn("cleanupViewLogs called with null or blank memberId");
+            return;
+        }
+
+        redisTemplate.delete(getKey(memberId));
+        postViewLogRepository.deleteAllByMemberId(memberId);
     }
 
     private String getKey(String memberId) {
