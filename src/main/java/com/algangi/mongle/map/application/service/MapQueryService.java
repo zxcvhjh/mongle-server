@@ -10,6 +10,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.algangi.mongle.postViewLog.application.service.PostViewLogService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,8 +30,10 @@ import com.algangi.mongle.staticCloud.domain.model.StaticCloud;
 import com.algangi.mongle.staticCloud.repository.StaticCloudRepository;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.util.StringUtils;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class MapQueryService {
@@ -45,6 +48,14 @@ public class MapQueryService {
     private final PostViewLogService postViewLogService;
 
     public MapObjectsResponse getMapObjects(MapObjectsRequest request, String memberId) {
+        if (StringUtils.hasText(memberId)) {
+            try {
+                postViewLogService.refreshViewLogTtl(memberId);
+            } catch (Exception e) {
+                log.warn("Failed to refresh view log TTL in Redis for map query.", e);
+            }
+        }
+
         List<String> s2cellTokens = s2CellService.getCellsForRect(
             request.swLat(), request.swLng(), request.neLat(), request.neLng()
         );
@@ -58,7 +69,9 @@ public class MapQueryService {
         List<Post> grains = postQueryRepository.findGrainsInCells(s2cellTokens, blockedAuthorIds);
 
         List<String> postIdsToCheck = grains.stream().map(Post::getId).toList();
-        Set<String> viewedPostIds = postViewLogService.findViewedPostIdsInList(memberId, postIdsToCheck);
+        Set<String> viewedPostIds = postIdsToCheck.isEmpty()
+                ? java.util.Collections.emptySet()
+                : postViewLogService.findViewedPostIdsInList(memberId, postIdsToCheck);
 
         List<StaticCloud> staticClouds = staticCloudRepository.findCloudsInCells(s2cellTokens);
         List<DynamicCloud> dynamicClouds = dynamicCloudRepository.findActiveCloudsInCells(
