@@ -8,6 +8,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.algangi.mongle.post.event.MemberViewedPostEvent;
 import com.algangi.mongle.postViewLog.application.service.PostViewLogService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -124,6 +125,8 @@ public class PostQueryService {
             } catch (Exception e) {
                 log.warn("Failed to record post view in Redis for memberId {}: {}", currentMemberId, e.getMessage());
             }
+
+            eventPublisher.publishEvent(new MemberViewedPostEvent(currentMemberId, postId));
         }
 
         PostStats stats = statsQueryService.getPostStatsMap(List.of(postId))
