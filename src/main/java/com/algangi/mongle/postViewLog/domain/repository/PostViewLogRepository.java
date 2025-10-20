@@ -9,6 +9,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.util.stream.Stream;
+
 public interface PostViewLogRepository extends JpaRepository<PostViewLog, String> {
     boolean existsByMemberAndPost(Member member, Post post);
 
@@ -16,4 +19,7 @@ public interface PostViewLogRepository extends JpaRepository<PostViewLog, String
     @Transactional
     @Query("DELETE FROM PostViewLog pvl WHERE pvl.member.memberId = :memberId")
     void deleteAllByMemberId(@Param("memberId") String memberId);
+
+    @Query("SELECT pvl FROM PostViewLog pvl JOIN FETCH pvl.member JOIN FETCH pvl.post WHERE pvl.createdDate > :since")
+    Stream<PostViewLog> streamAllByCreatedDateAfterWithJoins(@Param("since") Instant since);
 }
