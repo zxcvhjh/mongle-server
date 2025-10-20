@@ -101,7 +101,7 @@ public class MapQueryService {
 
                 boolean isViewed = viewedPostIds.contains(post.getId());
                 boolean isRecent = post.getCreatedDate().isAfter(thirtyMinutesAgo);
-                boolean hasGlareEffect = !isViewed && isRecent;
+                boolean hasGlareEffect = StringUtils.hasText(memberId) && !isViewed && isRecent;
 
                 return new MapObjectsResponse.Grain(
                     post.getId(),
