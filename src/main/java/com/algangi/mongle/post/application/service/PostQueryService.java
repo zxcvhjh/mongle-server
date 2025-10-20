@@ -8,6 +8,8 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.algangi.mongle.postViewLog.application.service.PostViewLogService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,7 +20,6 @@ import com.algangi.mongle.dynamicCloud.domain.repository.DynamicCloudRepository;
 import com.algangi.mongle.file.application.dto.PresignedUrl;
 import com.algangi.mongle.file.application.service.ViewUrlIssueService;
 import com.algangi.mongle.global.exception.ApplicationException;
-import com.algangi.mongle.global.util.DateTimeUtil;
 import com.algangi.mongle.member.application.service.MemberFinder;
 import com.algangi.mongle.member.domain.model.Member;
 import com.algangi.mongle.post.application.helper.PostFinder;
@@ -43,6 +44,7 @@ import com.algangi.mongle.stats.application.service.StatsQueryService;
 import lombok.RequiredArgsConstructor;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PostQueryService {
@@ -58,6 +60,7 @@ public class PostQueryService {
     private final DynamicCloudRepository dynamicCloudRepository;
     private final StaticCloudRepository staticCloudRepository;
     private final ReactionQueryService reactionQueryService;
+    private final PostViewLogService postViewLogService;
 
     public PostListResponse getPostList(PostListRequest request, String currentMemberId) {
         validateCloudExists(request);
@@ -114,6 +117,14 @@ public class PostQueryService {
 
         contentStatsService.incrementPostViewCount(postId);
         eventPublisher.publishEvent(new PostViewedEvent(postId));
+
+        if (currentMemberId != null) {
+            try {
+                postViewLogService.recordView(currentMemberId, postId);
+            } catch (Exception e) {
+                log.warn("Failed to record post view in Redis for memberId {}: {}", currentMemberId, e.getMessage());
+            }
+        }
 
         PostStats stats = statsQueryService.getPostStatsMap(List.of(postId))
             .getOrDefault(postId, PostStats.empty());
