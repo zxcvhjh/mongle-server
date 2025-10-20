@@ -1,5 +1,6 @@
 package com.algangi.mongle.postViewLog.application.service;
 
+import com.algangi.mongle.postViewLog.domain.model.PostViewLog;
 import com.algangi.mongle.postViewLog.domain.repository.PostViewLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -25,7 +28,9 @@ public class PostViewLogService {
     private final PostViewLogRepository postViewLogRepository;
 
     private static final String VIEWED_POSTS_KEY_PREFIX = "viewed_posts:";
+    private static final String LOCK_KEY_PREFIX = "lock:view_log:";
     private static final Duration VIEWED_POSTS_TTL = Duration.ofDays(7);
+    private static final Duration LAZY_LOAD_LOCK_TTL = Duration.ofSeconds(10);
 
     public void recordView(String memberId, String postId) {
         String key = getKey(memberId);
@@ -53,8 +58,12 @@ public class PostViewLogService {
         }
 
         String key = getKey(memberId);
-        var serializer = redisTemplate.getStringSerializer();
 
+        if (Boolean.FALSE.equals(redisTemplate.hasKey(key))) {
+            lazyLoadViewLogsIntoCache(memberId);
+        }
+
+        var serializer = redisTemplate.getStringSerializer();
         List<Object> results = redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
             for (String postId : postIds) {
                 connection.setCommands().sIsMember(serializer.serialize(key), serializer.serialize(postId));
@@ -83,5 +92,38 @@ public class PostViewLogService {
 
     private String getKey(String memberId) {
         return VIEWED_POSTS_KEY_PREFIX + memberId;
+    }
+
+    private String getLockKey(String memberId) {
+        return LOCK_KEY_PREFIX + memberId;
+    }
+
+    private void lazyLoadViewLogsIntoCache(String memberId) {
+        String lockKey = getLockKey(memberId);
+        Boolean lockAcquired = redisTemplate.opsForValue().setIfAbsent(lockKey, "locked", LAZY_LOAD_LOCK_TTL);
+
+        if (Boolean.TRUE.equals(lockAcquired)) {
+            try {
+                String cacheKey = getKey(memberId);
+                if (Boolean.TRUE.equals(redisTemplate.hasKey(cacheKey))) {
+                    return;
+                }
+
+                log.info("[Lazy Loading] Cache miss. DB에서 조회 기록을 가져옵니다. MemberId={}", memberId);
+                Instant since = Instant.now().minus(14, ChronoUnit.DAYS);
+                List<PostViewLog> recentLogs = postViewLogRepository.findByMember_MemberIdAndCreatedDateAfter(memberId, since);
+
+                if (!recentLogs.isEmpty()) {
+                    String[] viewedIds = recentLogs.stream()
+                            .map(log -> log.getPost().getId())
+                            .toArray(String[]::new);
+
+                    redisTemplate.opsForSet().add(cacheKey, viewedIds);
+                    redisTemplate.expire(cacheKey, VIEWED_POSTS_TTL);
+                }
+            } finally {
+                redisTemplate.delete(lockKey);
+            }
+        }
     }
 }
