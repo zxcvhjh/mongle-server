@@ -66,11 +66,11 @@ public class PostQueryService {
     public PostListResponse getPostList(PostListRequest request, String currentMemberId) {
         validateCloudExists(request);
 
-        if (currentMemberId != null) {
+        if (StringUtils.hasText(currentMemberId)) {
             try {
                 postViewLogService.refreshViewLogTtl(currentMemberId);
             } catch (Exception e) {
-                log.warn("Failed to refresh view log TTL in Redis for memberId {}: {}", currentMemberId, e.getMessage());
+                log.warn("Failed to refresh view log TTL in Redis.", e);
             }
         }
 
@@ -127,11 +127,11 @@ public class PostQueryService {
         contentStatsService.incrementPostViewCount(postId);
         eventPublisher.publishEvent(new PostViewedEvent(postId));
 
-        if (currentMemberId != null) {
+        if (StringUtils.hasText(currentMemberId)) {
             try {
                 postViewLogService.recordView(currentMemberId, postId);
             } catch (Exception e) {
-                log.warn("Failed to record post view in Redis for memberId {}: {}", currentMemberId, e.getMessage());
+                log.warn("Failed to record post view in Redis for postId={}: {}", postId, e.getMessage());
             }
 
             eventPublisher.publishEvent(new MemberViewedPostEvent(currentMemberId, postId));
