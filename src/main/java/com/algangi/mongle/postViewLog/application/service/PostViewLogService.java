@@ -59,7 +59,7 @@ public class PostViewLogService {
     }
 
     public Set<String> findViewedPostIdsInList(String memberId, List<String> postIds) {
-        if (memberId == null || CollectionUtils.isEmpty(postIds)) {
+        if (!StringUtils.hasText(memberId) || CollectionUtils.isEmpty(postIds)) {
             return Collections.emptySet();
         }
 
