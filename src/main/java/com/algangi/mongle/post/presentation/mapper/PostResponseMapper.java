@@ -26,21 +26,24 @@ public class PostResponseMapper {
         PostStats stats,
         String myReaction // Nullable
     ) {
-        // 프로필 이미지 URL 생성 로직
-        String profileImageUrl = null;
-        if (post.getStatus() == PostStatus.ACTIVE && author != null && author.getProfileImage() != null) {
-            try {
-                profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage()).url();
-            } catch (Exception e) {
-                log.warn("Failed to issue view URL for profile image key in PostResponseMapper: {}", author.getProfileImage(), e);
-                // 실패 시 null 유지
-            }
-        }
+        boolean isAnonymous = post.isAnonymous();
+        PostListResponse.PostSummary.Author authorDto;
 
-        // Author DTO 생성
-        PostListResponse.PostSummary.Author authorDto = (author != null)
-            ? new PostListResponse.PostSummary.Author(author.getMemberId(), author.getNickname(), profileImageUrl)
-            : new PostListResponse.PostSummary.Author(null, "익명의 몽글러", null); // 익명 처리
+        if (author == null || isAnonymous) {
+            authorDto = new PostListResponse.PostSummary.Author(null, "익명의 몽글러", null);
+        } else {
+            // 프로필 이미지 URL 생성 로직
+            String profileImageUrl = null;
+            if (post.getStatus() == PostStatus.ACTIVE && author.getProfileImage() != null) {
+                try {
+                    profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage()).url();
+                } catch (Exception e) {
+                    log.warn("Failed to issue view URL for profile image key in PostResponseMapper: {}", author.getProfileImage(), e);
+                    // 실패 시 null 유지
+                }
+            }
+            authorDto = new PostListResponse.PostSummary.Author(author.getMemberId(), author.getNickname(), profileImageUrl);
+        }
 
         // 최종 PostSummary DTO 생성
         return new PostListResponse.PostSummary(

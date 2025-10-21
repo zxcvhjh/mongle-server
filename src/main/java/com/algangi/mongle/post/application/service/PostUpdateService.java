@@ -39,11 +39,12 @@ public class PostUpdateService {
         List<String> finalFileKeys = request.fileKeyList();
 
         post.updateContent(request.content());
+        post.updateAnonymity(request.isAnonymous());
 
         PostFileUpdatedEvent event = new PostFileUpdatedEvent(postId, previousFileKeys,
             finalFileKeys);
         eventPublisher.publishEvent(event);
 
-        return PostUpdateResponse.of(postId, request.content());
+        return PostUpdateResponse.of(post.getId(), post.getContent(), post.isAnonymous());
     }
 }

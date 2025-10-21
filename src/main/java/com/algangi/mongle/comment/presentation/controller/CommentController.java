@@ -64,7 +64,7 @@ public class CommentController {
             @PathVariable(name = "postId") String postId,
             @Valid @RequestBody CommentCreateRequest dto,
             @AuthenticationPrincipal CustomUserDetails user)  {
-        commentCommandService.createParentComment(postId, dto.content(), user.userId());
+        commentCommandService.createParentComment(postId, dto, user.userId());
         return ResponseEntity.ok(ApiResponse.success());
     }
 
@@ -73,7 +73,7 @@ public class CommentController {
             @PathVariable(name = "parentCommentId") String parentCommentId,
             @Valid @RequestBody CommentCreateRequest dto,
             @AuthenticationPrincipal CustomUserDetails user) {
-        commentCommandService.createChildComment(parentCommentId, dto.content(), user.userId());
+        commentCommandService.createChildComment(parentCommentId, dto, user.userId());
         return ResponseEntity.ok(ApiResponse.success());
     }
 

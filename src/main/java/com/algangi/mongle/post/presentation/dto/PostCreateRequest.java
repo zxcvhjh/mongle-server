@@ -17,7 +17,8 @@ public record PostCreateRequest(
     @Size(max = 2000)
     String content,
     List<String> fileKeyList,
-    boolean isRandomLocationEnabled
+    boolean isRandomLocationEnabled,
+    Boolean isAnonymous
 ) {
 
     public PostCreateRequest {

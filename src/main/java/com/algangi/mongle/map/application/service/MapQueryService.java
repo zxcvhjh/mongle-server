@@ -91,15 +91,22 @@ public class MapQueryService {
             .map(post -> {
                 Member author = authors.get(post.getAuthorId());
 
-                String profileImageUrl = null;
-                if (post.getStatus() == PostStatus.ACTIVE && author != null && author.getProfileImage() != null) {
-                    profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage()).url();
-                }
+                boolean isAnonymous = post.isAnonymous();
+                MapObjectsResponse.Grain.Author authorDto;
 
-                MapObjectsResponse.Grain.Author authorDto = (author != null)
-                    ? new MapObjectsResponse.Grain.Author(author.getMemberId(),
-                    author.getNickname(), profileImageUrl)
-                    : new MapObjectsResponse.Grain.Author(null, "익명의 몽글러", null);
+                if (author == null || isAnonymous) {
+                    authorDto = new MapObjectsResponse.Grain.Author(null, "익명의 몽글러", null);
+                } else {
+                    String profileImageUrl = null;
+                    if (post.getStatus() == PostStatus.ACTIVE && author.getProfileImage() != null) {
+                        try {
+                            profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage()).url();
+                        } catch (Exception e) {
+                            log.warn("Failed to issue view URL for profile image key in map query: {}", author.getProfileImage(), e);
+                        }
+                    }
+                    authorDto = new MapObjectsResponse.Grain.Author(author.getMemberId(), author.getNickname(), profileImageUrl);
+                }
 
                 boolean isViewed = viewedPostIds.contains(post.getId());
                 boolean isPostCreatedRecently = !post.getCreatedDate().isBefore(thirtyMinutesAgo);

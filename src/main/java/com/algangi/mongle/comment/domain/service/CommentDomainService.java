@@ -9,12 +9,12 @@ import com.algangi.mongle.post.domain.model.Post;
 @Service
 public class CommentDomainService {
 
-    public Comment createParentComment(Post post, Member author, String content) {
-        return Comment.createParentComment(content, post, author);
+    public Comment createParentComment(Post post, Member author, String content, boolean isAnonymous) {
+        return Comment.createParentComment(content, post, author, isAnonymous);
     }
 
-    public Comment createChildComment(Comment parent, Member author, String content) {
-        return Comment.createChildComment(content, parent, author);
+    public Comment createChildComment(Comment parent, Member author, String content, boolean isAnonymous) {
+        return Comment.createChildComment(content, parent, author, isAnonymous);
     }
 
     public void deleteComment(Comment comment) {

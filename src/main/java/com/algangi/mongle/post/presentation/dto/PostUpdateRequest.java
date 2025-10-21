@@ -11,7 +11,8 @@ public record PostUpdateRequest(
     @NotBlank(message = "게시글 내용은 필수값입니다.")
     @Size(max = 2000)
     String content,
-    List<String> fileKeyList
+    List<String> fileKeyList,
+    Boolean isAnonymous
 ) {
 
     public PostUpdateRequest {

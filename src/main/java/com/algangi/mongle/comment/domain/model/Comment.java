@@ -64,16 +64,21 @@ public class Comment extends TimeBaseEntity implements CursorConvertible {
     private Member member;
 
     @Column(nullable = false)
+    @Builder.Default
+    private boolean isAnonymous = false;
+
+    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private CommentStatus status = CommentStatus.ACTIVE;
 
-    public static Comment createParentComment(String content, Post post, Member member) {
+    public static Comment createParentComment(String content, Post post, Member member, boolean isAnonymous) {
         Comment comment = Comment.builder()
             .content(content)
             .post(post)
             .parentComment(null)
             .member(member)
+            .isAnonymous(isAnonymous)
             .build();
 
         post.addComment(comment);
@@ -81,7 +86,7 @@ public class Comment extends TimeBaseEntity implements CursorConvertible {
         return comment;
     }
 
-    public static Comment createChildComment(String content, Comment parentComment, Member member) {
+    public static Comment createChildComment(String content, Comment parentComment, Member member, boolean isAnonymous) {
         if (parentComment.isChildComment()) {
             throw new IllegalArgumentException("대댓글에 대댓글을 달 수 없습니다.");
         }
@@ -91,6 +96,7 @@ public class Comment extends TimeBaseEntity implements CursorConvertible {
             .parentComment(parentComment)
             .post(parentComment.getPost())
             .member(member)
+            .isAnonymous(isAnonymous)
             .build();
 
         parentComment.getPost().addComment(comment);

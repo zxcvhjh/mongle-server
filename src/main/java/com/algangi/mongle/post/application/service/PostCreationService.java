@@ -69,6 +69,8 @@ public class PostCreationService {
             oldestPost.ifPresent(postRepository::delete);
         }
 
+        boolean isAnonymous = request.isAnonymous() != null && request.isAnonymous();
+
         Location originalLocation = Location.create(request.latitude(), request.longitude());
         String originalS2TokenId = cellService.generateS2TokenIdFrom(originalLocation.getLatitude(),
             originalLocation.getLongitude());
@@ -93,7 +95,8 @@ public class PostCreationService {
             finalLocation,
             finalS2TokenId,
             request.content(),
-            authorId);
+            authorId,
+            isAnonymous);
 
         Post createdPost;
         Optional<DynamicCloud> existingDynamicCloud = dynamicCloudRepository.findActiveByS2TokenId(
@@ -146,7 +149,8 @@ public class PostCreationService {
             command.s2TokenId(),
             command.content(),
             command.authorId(),
-            staticCloud.getId()
+            staticCloud.getId(),
+            command.isAnonymous()
         );
     }
 
@@ -156,7 +160,8 @@ public class PostCreationService {
             command.s2TokenId(),
             command.content(),
             command.authorId(),
-            dynamicCloud.getId()
+            dynamicCloud.getId(),
+            command.isAnonymous()
         );
     }
 
@@ -165,7 +170,8 @@ public class PostCreationService {
             command.location(),
             command.s2TokenId(),
             command.content(),
-            command.authorId()
+            command.authorId(),
+            command.isAnonymous()
         );
     }
 

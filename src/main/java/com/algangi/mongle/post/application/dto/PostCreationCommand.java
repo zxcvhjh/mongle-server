@@ -6,12 +6,13 @@ public record PostCreationCommand(
     Location location,
     String s2TokenId,
     String content,
-    String authorId
+    String authorId,
+    boolean isAnonymous
 ) {
 
     public static PostCreationCommand of(Location location, String s2TokenId,
-        String content, String authorId) {
-        return new PostCreationCommand(location, s2TokenId, content, authorId);
+        String content, String authorId, boolean isAnonymous){
+        return new PostCreationCommand(location, s2TokenId, content, authorId, isAnonymous);
     }
 
 }

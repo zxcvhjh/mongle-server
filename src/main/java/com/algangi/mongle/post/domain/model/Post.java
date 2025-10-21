@@ -79,6 +79,10 @@ public class Post extends TimeBaseEntity {
     @Column(nullable = false)
     private String authorId;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean isAnonymous = false;
+
     private Long dynamicCloudId;
 
     private Long staticCloudId;
@@ -92,7 +96,8 @@ public class Post extends TimeBaseEntity {
         String s2TokenId,
         String content,
         String authorId,
-        Long staticCloudId
+        Long staticCloudId,
+        boolean isAnonymous
     ) {
         return Post.builder()
             .location(location)
@@ -100,6 +105,7 @@ public class Post extends TimeBaseEntity {
             .content(content)
             .authorId(authorId)
             .staticCloudId(staticCloudId)
+            .isAnonymous(isAnonymous)
             .build();
     }
 
@@ -108,7 +114,8 @@ public class Post extends TimeBaseEntity {
         String s2TokenId,
         String content,
         String authorId,
-        Long dynamicCloudId
+        Long dynamicCloudId,
+        boolean isAnonymous
     ) {
         return Post.builder()
             .location(location)
@@ -116,6 +123,7 @@ public class Post extends TimeBaseEntity {
             .content(content)
             .authorId(authorId)
             .dynamicCloudId(dynamicCloudId)
+            .isAnonymous(isAnonymous)
             .build();
     }
 
@@ -123,13 +131,15 @@ public class Post extends TimeBaseEntity {
         Location location,
         String s2TokenId,
         String content,
-        String authorId
+        String authorId,
+        boolean isAnonymous
     ) {
         return Post.builder()
             .location(location)
             .s2TokenId(s2TokenId)
             .content(content)
             .authorId(authorId)
+            .isAnonymous(isAnonymous)
             .build();
     }
 
@@ -151,6 +161,12 @@ public class Post extends TimeBaseEntity {
         }
         this.postFiles.clear();
         addPostFiles(postFiles);
+    }
+
+    public void updateAnonymity(Boolean isAnonymous) {
+        if (isAnonymous != null) {
+            this.isAnonymous = isAnonymous;
+        }
     }
 
     public void addPostFiles(List<PostFile> postFiles) {

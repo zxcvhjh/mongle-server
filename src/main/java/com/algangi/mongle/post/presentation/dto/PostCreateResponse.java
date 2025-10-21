@@ -11,7 +11,8 @@ public record PostCreateResponse(
     String s2TokenId,
     Long staticCloudId,
     Long dynamicCloudId,
-    Instant createdAt
+    Instant createdAt,
+    boolean isAnonymous
 ) {
 
     public static PostCreateResponse from(Post post) {
@@ -22,7 +23,8 @@ public record PostCreateResponse(
             post.getS2TokenId(),
             post.getStaticCloudId(),
             post.getDynamicCloudId(),
-            post.getCreatedDate()
+            post.getCreatedDate(),
+            post.isAnonymous()
         );
     }
 }

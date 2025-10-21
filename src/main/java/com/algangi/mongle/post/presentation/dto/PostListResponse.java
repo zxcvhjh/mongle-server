@@ -45,14 +45,19 @@ public class PostListResponse {
 
         public static PostSummary from(Post post, Member author, List<String> photoUrls,
             PostStats stats, String myReaction) {
-            // 게시글 상태가 ACTIVE일 때만 프로필 이미지 URL을 사용, 아니면 null
-            String profileImageUrl = (post.getStatus() == PostStatus.ACTIVE && author != null)
-                ? author.getProfileImage()
-                : null;
 
-            Author authorDto = (author != null)
-                ? new Author(author.getMemberId(), author.getNickname(), profileImageUrl)
-                : new Author(null, "익명의 몽글러", null);
+            boolean isAnonymous = post.isAnonymous();
+            Author authorDto;
+
+            if (isAnonymous || author == null) {
+                authorDto = new Author(null, "익명의 몽글러", null);
+            } else {
+                // 게시글 상태가 ACTIVE일 때만 프로필 이미지 URL을 사용, 아니면 null
+                String profileImageUrl = (post.getStatus() == PostStatus.ACTIVE)
+                        ? author.getProfileImage()
+                        : null;
+                authorDto = new Author(author.getMemberId(), author.getNickname(), profileImageUrl);
+            }
 
             return new PostSummary(
                 post.getId(),
