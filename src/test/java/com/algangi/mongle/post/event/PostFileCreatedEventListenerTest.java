@@ -47,7 +47,7 @@ class PostFileCreatedEventListenerTest {
     // @Spy를 사용하여 실제 Post 객체의 메서드 호출을 감지합니다.
     @Spy
     private Post post = Post.createStandalone(null, "s2-token", "content",
-        "author");
+        "author", false);
 
     @BeforeEach
     void setUp() {

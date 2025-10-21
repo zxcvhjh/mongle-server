@@ -151,16 +151,28 @@ public class PostQueryService {
         ReactionType myReaction = myReactionsMap.get(postId);
         String myReactionStr = (myReaction != null) ? myReaction.name() : null;
 
-        String profileImageUrl = null;
-        if (post.getStatus() == PostStatus.ACTIVE && author != null && author.getProfileImage() != null) {
-            profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage()).url();
-        }
+        PostDetailResponse.Author authorDto;
+        boolean isAnonymous = post.getIsAnonymous();
 
-        PostDetailResponse.Author authorDto = new PostDetailResponse.Author(
-            author.getMemberId(),
-            author.getNickname(),
-            profileImageUrl
-        );
+        if (isAnonymous) {
+            // 익명 게시물일 경우, ID는 유지하되 닉네임과 이미지는 마스킹
+            authorDto = new PostDetailResponse.Author(
+                    author.getMemberId(),
+                    "익명의 몽글러",
+                    null
+            );
+        } else {
+            String profileImageUrl = null;
+            if (post.getStatus() == PostStatus.ACTIVE && author != null && author.getProfileImage() != null) {
+                profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage()).url();
+            }
+
+            authorDto = new PostDetailResponse.Author(
+                author.getMemberId(),
+                author.getNickname(),
+                profileImageUrl
+            );
+        }
 
         List<String> photoKeys = post.getPostFiles().stream()
             .map(PostFile::getFileKey)
@@ -273,7 +285,7 @@ public class PostQueryService {
 
         Post lastPost = content.get(content.size() - 1);
         String formattedDate = lastPost.getCreatedDate().toString();
-        PostSort finalSort = (sort == null) ? PostSort.ranking_score : sort;
+        PostSort finalSort = (sort == null) ? com.algangi.mongle.post.presentation.dto.PostSort.ranking_score : sort;
 
         if (finalSort == PostSort.ranking_score) {
             return String.join("_",

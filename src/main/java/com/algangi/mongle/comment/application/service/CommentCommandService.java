@@ -1,5 +1,6 @@
 package com.algangi.mongle.comment.application.service;
 
+import com.algangi.mongle.comment.presentation.dto.CommentCreateRequest;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,26 +35,30 @@ public class CommentCommandService {
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
-    public void createParentComment(String postId, String content, String memberId) {
+    public void createParentComment(String postId, CommentCreateRequest dto, String memberId) {
         Member author = memberFinder.getMemberOrThrow(memberId);
         requireActive(author);
 
         Post post = postFinder.getPostOrThrow(postId);
 
-        Comment newComment = commentDomainService.createParentComment(post, author, content);
+        boolean isAnonymous = dto.isAnonymous() != null && dto.isAnonymous();
+
+        Comment newComment = commentDomainService.createParentComment(post, author, dto.content(), isAnonymous);
 
         commentRepository.save(newComment);
         eventPublisher.publishEvent(new CommentCreatedEvent(postId, newComment.getId()));
     }
 
     @Transactional
-    public void createChildComment(String parentCommentId, String content, String memberId) {
+    public void createChildComment(String parentCommentId, CommentCreateRequest dto, String memberId) {
         Member author = memberFinder.getMemberOrThrow(memberId);
         requireActive(author);
 
         Comment parent = commentFinder.getCommentOrThrow(parentCommentId);
 
-        Comment newComment = commentDomainService.createChildComment(parent, author, content);
+        boolean isAnonymous = dto.isAnonymous() != null && dto.isAnonymous();
+
+        Comment newComment = commentDomainService.createChildComment(parent, author, dto.content(), isAnonymous);
 
         commentRepository.save(newComment);
         eventPublisher.publishEvent(

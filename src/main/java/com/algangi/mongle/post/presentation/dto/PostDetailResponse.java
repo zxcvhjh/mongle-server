@@ -38,8 +38,8 @@ public record PostDetailResponse(
             post.getCreatedDate(),
             post.getUpdatedDate(),
             stats.viewCount(),
-            post.getLikeCount(),
-            post.getDislikeCount(),
+            stats.likeCount(),
+            stats.dislikeCount(),
             myReaction,
             stats.commentCount()
         );

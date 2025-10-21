@@ -77,7 +77,8 @@ class DynamicCloudFormationServiceTest {
             // [수정] Post 생성 시 postId 파라미터를 제거하고 Location 객체를 생성하여 전달
             Post newPost = Post.createStandalone(Location.create(35.0, 128.0), S2_TOKEN_ID,
                 "content",
-                "author");
+                "author",
+                false);
             List<Post> existingPostsInCell = new ArrayList<>(List.of(newPost));
 
             // when
@@ -118,14 +119,14 @@ class DynamicCloudFormationServiceTest {
             // 병합될 구름(youngerCloud)에 속한 게시물들
             // [수정] Post 생성 시 postId 파라미터를 제거하고 Location 객체를 생성하여 전달
             Post postToReassign = Post.createInDynamicCloud(Location.create(35.1, 128.1), "cell_C",
-                "c1", "a1", 2L);
+                "c1", "a1", 2L, false);
             when(postRepository.findByDynamicCloudIdIn(List.of(2L))).thenReturn(
                 List.of(postToReassign));
 
             // 새로 생성되는 셀(cell_A)에 속한 게시물
             // [수정] Post 생성 시 postId 파라미터를 제거하고 Location 객체를 생성하여 전달
             Post newPost = Post.createStandalone(Location.create(35.0, 128.0), S2_TOKEN_ID, "c2",
-                "a2");
+                "a2", false);
             List<Post> existingPostsInCell = List.of(newPost);
 
             // when
