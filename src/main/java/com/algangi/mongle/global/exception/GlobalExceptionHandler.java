@@ -1,9 +1,9 @@
 package com.algangi.mongle.global.exception;
 
+import com.algangi.mongle.auth.exception.DisposableEmailException;
 import com.algangi.mongle.auth.exception.RateLimitExceededException;
-import java.util.List;
-import java.util.Map;
-
+import com.algangi.mongle.global.dto.ApiResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,9 +13,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-import com.algangi.mongle.global.dto.ApiResponse;
-
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.Map;
 
 @RestControllerAdvice
 @Slf4j
@@ -30,6 +29,26 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(errorCode.getStatus())
             .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage(),
                 ErrorInfo.of(exception.getErrorInfo())));
+    }
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleRateLimitExceededException(
+        RateLimitExceededException exception) {
+
+        ErrorCode errorCode = exception.getErrorCode();
+
+        return ResponseEntity.status(errorCode.getStatus())
+            .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage()));
+    }
+
+    @ExceptionHandler(DisposableEmailException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDisposableEmailException(
+        DisposableEmailException exception) {
+
+        ErrorCode errorCode = exception.getErrorCode();
+
+        return ResponseEntity.status(errorCode.getStatus())
+            .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -76,17 +95,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ApiResponse<Void>> handleException(
         HttpRequestMethodNotSupportedException exception) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
             .body(ApiResponse.error("HTTP_METHOD_NOT_SUPPORTED", "지원하지 않는 HTTP 메소드입니다."));
-    }
-
-    @ExceptionHandler(RateLimitExceededException.class)
-    public ResponseEntity<ApiResponse<Void>> handleRateLimitExceededException(
-        RateLimitExceededException exception) {
-
-        ErrorCode errorCode = exception.getErrorCode();
-
-        return ResponseEntity.status(errorCode.getStatus())
-            .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage()));
     }
 }

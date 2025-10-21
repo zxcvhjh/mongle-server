@@ -32,7 +32,11 @@ public enum AuthErrorCode implements ErrorCode {
     VERIFICATION_CODE_TRY_EXCEEDED(HttpStatus.BAD_REQUEST, "AUTH-022",
         "이메일 인증 코드 요청 제한 횟수를 초과했습니다. 1분 뒤에 다시 시도해주세요."),
     VERIFICATION_CODE_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "AUTH-023",
-        "이메일 인증 코드 발송에 실패하였습니다.");
+        "이메일 인증 코드 발송에 실패하였습니다."),
+    VERIFICATION_CODE_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "AUTH-023",
+        "이메일 인증 코드 발송에 실패하였습니다."),
+    DISPOSABLE_EMAIL_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "AUTH-024", "일회용 이메일 주소는 사용할 수 없습니다.");
+
 
     private final HttpStatus status;
     private final String code;
