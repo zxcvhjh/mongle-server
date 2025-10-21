@@ -155,7 +155,6 @@ public class PostQueryService {
         boolean isAnonymous = post.isAnonymous();
 
         if (isAnonymous) {
-            // 익명 게시물일 경우, ID는 유지하되 닉네임과 이미지는 마스킹
             authorDto = new PostDetailResponse.Author(
                     author.getMemberId(),
                     "익명의 몽글러",
@@ -163,7 +162,7 @@ public class PostQueryService {
             );
         } else {
             String profileImageUrl = null;
-            if (post.getStatus() == PostStatus.ACTIVE && author != null && author.getProfileImage() != null) {
+            if (post.getStatus() == PostStatus.ACTIVE && author.getProfileImage() != null) {
                 profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage()).url();
             }
 
