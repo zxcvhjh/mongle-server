@@ -164,7 +164,6 @@ public class Post extends TimeBaseEntity {
     }
 
     public void updateAnonymity(Boolean isAnonymous) {
-        // isAnonymous 값이 null이 아닐 경우에만 상태를 변경합니다.
         if (isAnonymous != null) {
             this.isAnonymous = isAnonymous;
         }
