@@ -151,6 +151,28 @@ public class PostQueryService {
         ReactionType myReaction = myReactionsMap.get(postId);
         String myReactionStr = (myReaction != null) ? myReaction.name() : null;
 
+        PostDetailResponse.Author authorDto;
+        boolean isAnonymous = post.isAnonymous();
+
+        if (isAnonymous) {
+            authorDto = new PostDetailResponse.Author(
+                    null,
+                    "익명의 몽글러",
+                    null
+            );
+        } else {
+            String profileImageUrl = null;
+            if (post.getStatus() == PostStatus.ACTIVE && author.getProfileImage() != null) {
+                profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage()).url();
+            }
+
+            authorDto = new PostDetailResponse.Author(
+                author.getMemberId(),
+                author.getNickname(),
+                profileImageUrl
+            );
+        }
+
         List<String> photoKeys = post.getPostFiles().stream()
             .map(PostFile::getFileKey)
             .filter(key -> key.startsWith("posts/images/"))
@@ -163,7 +185,7 @@ public class PostQueryService {
         List<String> photoUrls = issueFileUrls(photoKeys);
         List<String> videoUrls = issueFileUrls(videoKeys);
 
-        return PostDetailResponse.from(post, author, stats, photoUrls, videoUrls, myReactionStr);
+        return PostDetailResponse.from(post, authorDto, stats, photoUrls, videoUrls, myReactionStr);
     }
 
     private void validateCloudExists(PostListRequest request) {
