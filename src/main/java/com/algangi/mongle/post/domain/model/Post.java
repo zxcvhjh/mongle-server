@@ -42,7 +42,7 @@ public class Post extends TimeBaseEntity {
     @Column(nullable = false)
     private String s2TokenId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 2000)
     private String content;
 
     @Column(nullable = false)
