@@ -1,7 +1,5 @@
 package com.algangi.mongle.global.exception;
 
-// 삭제: import com.algangi.mongle.auth.exception.DisposableEmailException;
-
 import com.algangi.mongle.auth.exception.RateLimitExceededException;
 import com.algangi.mongle.global.dto.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -41,19 +39,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(errorCode.getStatus())
             .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage()));
     }
-
-    // 삭제된 메서드: DisposableEmailException 핸들러
-    /*
-    @ExceptionHandler(DisposableEmailException.class)
-    public ResponseEntity<ApiResponse<Void>> handleDisposableEmailException(
-        DisposableEmailException exception) {
-
-        ErrorCode errorCode = exception.getErrorCode();
-
-        return ResponseEntity.status(errorCode.getStatus())
-            .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage()));
-    }
-    */
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<ErrorInfo>> handleIllegalArgumentException(
