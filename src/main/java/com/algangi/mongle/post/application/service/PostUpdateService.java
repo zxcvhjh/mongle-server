@@ -45,6 +45,6 @@ public class PostUpdateService {
             finalFileKeys);
         eventPublisher.publishEvent(event);
 
-        return PostUpdateResponse.of(post.getId(), post.getContent(), post.getIsAnonymous());
+        return PostUpdateResponse.of(post.getId(), post.getContent(), post.isAnonymous());
     }
 }

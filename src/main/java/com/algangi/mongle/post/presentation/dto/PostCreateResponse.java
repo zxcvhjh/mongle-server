@@ -24,7 +24,7 @@ public record PostCreateResponse(
             post.getStaticCloudId(),
             post.getDynamicCloudId(),
             post.getCreatedDate(),
-            post.getIsAnonymous()
+            post.isAnonymous()
         );
     }
 }

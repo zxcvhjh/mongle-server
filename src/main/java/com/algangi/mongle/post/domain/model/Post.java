@@ -81,7 +81,7 @@ public class Post extends TimeBaseEntity {
 
     @Column(nullable = false)
     @Builder.Default
-    private Boolean isAnonymous = false;
+    private boolean isAnonymous = false;
 
     private Long dynamicCloudId;
 

@@ -152,7 +152,7 @@ public class PostQueryService {
         String myReactionStr = (myReaction != null) ? myReaction.name() : null;
 
         PostDetailResponse.Author authorDto;
-        boolean isAnonymous = post.getIsAnonymous();
+        boolean isAnonymous = post.isAnonymous();
 
         if (isAnonymous) {
             // 익명 게시물일 경우, ID는 유지하되 닉네임과 이미지는 마스킹

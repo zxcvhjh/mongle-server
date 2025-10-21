@@ -29,7 +29,7 @@ public final class CommentResponseMapper {
         long dislikeCount,
         String myReaction) {
 
-        boolean isAnonymous = comment.getIsAnonymous() != null && comment.getIsAnonymous();
+        boolean isAnonymous = comment.isAnonymous();
         boolean isDeleted = comment.isDeleted();
         Member author = comment.getMember();
 

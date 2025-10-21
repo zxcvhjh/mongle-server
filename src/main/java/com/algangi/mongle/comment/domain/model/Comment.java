@@ -65,7 +65,7 @@ public class Comment extends TimeBaseEntity implements CursorConvertible {
 
     @Column(nullable = false)
     @Builder.Default
-    private Boolean isAnonymous = false;
+    private boolean isAnonymous = false;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)

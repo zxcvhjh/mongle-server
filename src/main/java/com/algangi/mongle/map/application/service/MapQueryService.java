@@ -91,7 +91,7 @@ public class MapQueryService {
             .map(post -> {
                 Member author = authors.get(post.getAuthorId());
 
-                boolean isAnonymous = post.getIsAnonymous();
+                boolean isAnonymous = post.isAnonymous();
                 MapObjectsResponse.Grain.Author authorDto;
 
                 if (author == null) {

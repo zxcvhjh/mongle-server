@@ -26,7 +26,7 @@ public class PostResponseMapper {
         PostStats stats,
         String myReaction // Nullable
     ) {
-        boolean isAnonymous = post.getIsAnonymous();
+        boolean isAnonymous = post.isAnonymous();
         PostListResponse.PostSummary.Author authorDto;
 
         if (author == null) {
