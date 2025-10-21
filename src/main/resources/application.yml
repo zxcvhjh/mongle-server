@@ -80,12 +80,6 @@ app:
     rate-limit:
       duration-minutes: 5
       max-requests: 10
-    disposable-email-domains:
-      - yopmail.com
-      - mailinator.com
-      - temp-mail.org
-      - 10minutemail.com
-      - guerillamail.com
 
 # ===================================================
 # Mongle 서비스 관련 커스텀 설정

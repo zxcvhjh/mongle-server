@@ -1,7 +1,6 @@
 package com.algangi.mongle.auth.application.service.email;
 
 import com.algangi.mongle.auth.exception.AuthErrorCode;
-import com.algangi.mongle.auth.exception.DisposableEmailException;
 import com.algangi.mongle.auth.exception.RateLimitExceededException;
 import com.algangi.mongle.auth.presentation.dto.VerifyEmailRequest;
 import com.algangi.mongle.auth.presentation.dto.VerifyEmailResponse;
@@ -16,7 +15,6 @@ import org.springframework.util.StringUtils;
 
 import java.time.Duration;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -30,15 +28,11 @@ public class EmailVerificationService {
     private final EmailVerificationCodeManager emailVerificationCodeManager;
     private final VerificationTokenManager verificationTokenManager;
     private final ClientIpUtils clientIpUtils;
-
     @Value("${app.security.rate-limit.duration-minutes}")
     private long rateLimitDurationMinutes;
 
     @Value("${app.security.rate-limit.max-requests}")
     private int maxRequests;
-
-    @Value("${app.security.disposable-email-domains}")
-    private List<String> disposableEmailDomains;
 
     public void sendVerificationCode(String email) {
         checkPolicies(email);
@@ -60,7 +54,6 @@ public class EmailVerificationService {
 
     private void checkPolicies(String email) {
         checkIpRateLimit();
-        checkDisposableEmail(email);
     }
 
     private void checkIpRateLimit() {
@@ -82,13 +75,6 @@ public class EmailVerificationService {
 
         if (attempts > maxRequests) {
             throw new RateLimitExceededException();
-        }
-    }
-
-    private void checkDisposableEmail(String email) {
-        String domain = email.substring(email.indexOf("@") + 1);
-        if (disposableEmailDomains.contains(domain)) {
-            throw new DisposableEmailException();
         }
     }
 

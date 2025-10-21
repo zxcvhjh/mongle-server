@@ -1,6 +1,5 @@
 package com.algangi.mongle.global.exception;
 
-import com.algangi.mongle.auth.exception.DisposableEmailException;
 import com.algangi.mongle.auth.exception.RateLimitExceededException;
 import com.algangi.mongle.global.dto.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
