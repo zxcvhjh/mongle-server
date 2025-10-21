@@ -7,12 +7,12 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,9 +23,7 @@ import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
-
 import com.algangi.mongle.auth.application.service.email.EmailSanctionManager;
-
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 
@@ -70,23 +68,46 @@ class ThymeleafMailSenderTest {
         thymeleafMailSender.send(TEST_EMAIL, "제목", "템플릿", Collections.emptyMap());
 
         verify(javaMailSender, times(1)).send(any(MimeMessage.class));
-        verify(emailSanctionManager, times(0)).recordHardBounceAndSanction(anyString());
+        verify(emailSanctionManager, never()).recordHardBounceAndSanction(anyString());
     }
 
     @Test
-    @DisplayName("JavaMailSender.send()에서 MailException 발생 시 하드 바운스를 기록하고 MessagingException으로 다시 던진다")
-    void send_Failure_RecordsHardBounceAndRethrows() {
+    @DisplayName("영구적 오류 발생 시 (Invalid Address) 하드 바운스를 기록하고 예외를 다시 던진다")
+    void send_Failure_RecordsHardBounceAndRethrows_OnPermanentError() {
         // Given
-        doThrow(new MailSendException("Mock Hard Bounce")).when(javaMailSender)
-            .send(any(MimeMessage.class));
+
+        MailSendException hardBounceException = new MailSendException("메일 발송 실패",
+            new MessagingException("550 Invalid Address for " + TEST_EMAIL));
+        doThrow(hardBounceException).when(javaMailSender).send(any(MimeMessage.class));
 
         // When & Then
         assertThrows(MessagingException.class, () -> {
             thymeleafMailSender.send(TEST_EMAIL, "제목", "템플릿", Collections.emptyMap());
         });
 
+        // 1. EmailSanctionManager.recordHardBounceAndSanction()이 호출되었는지 검증 (필터 통과)
         verify(emailSanctionManager, times(1)).recordHardBounceAndSanction(eq(TEST_EMAIL));
 
+        // 2. javaMailSender는 호출되었음
+        verify(javaMailSender, times(1)).send(any(MimeMessage.class));
+    }
+
+    @Test
+    @DisplayName("일시적 오류 발생 시 (Temporary Failure) 하드 바운스를 기록하지 않고 예외만 던진다")
+    void send_Failure_DoesNotRecordHardBounce_OnTemporaryError() {
+        // Given
+        MailSendException temporaryError = new MailSendException("메일 발송 실패: Connection timed out");
+        doThrow(temporaryError).when(javaMailSender).send(any(MimeMessage.class));
+
+        // When & Then
+        assertThrows(MessagingException.class, () -> {
+            thymeleafMailSender.send(TEST_EMAIL, "제목", "템플릿", Collections.emptyMap());
+        });
+
+        // 1. EmailSanctionManager.recordHardBounceAndSanction()이 호출되지 않았는지 검증 (필터 미통과)
+        verify(emailSanctionManager, never()).recordHardBounceAndSanction(anyString());
+
+        // 2. javaMailSender는 호출되었음
         verify(javaMailSender, times(1)).send(any(MimeMessage.class));
     }
 }

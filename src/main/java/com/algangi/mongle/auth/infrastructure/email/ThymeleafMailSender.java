@@ -68,12 +68,36 @@ public class ThymeleafMailSender
             javaMailSender.send(mimeMessage);
 
         } catch (MessagingException | MailException e) {
-            emailSanctionManager.recordHardBounceAndSanction(to);
+
+            if (isHardBounceError(e)) {
+                emailSanctionManager.recordHardBounceAndSanction(to);
+            }
 
             if (e instanceof MessagingException) {
                 throw (MessagingException) e;
             }
+
             throw new MessagingException("메일 발송에 실패했습니다.", e);
         }
+    }
+
+    private boolean isHardBounceError(Exception e) {
+        Throwable rootCause = e;
+
+        // 근본 원인(Root Cause) 찾기
+        while (rootCause.getCause() != null && rootCause.getCause() != rootCause) {
+            rootCause = rootCause.getCause();
+        }
+
+        String message = rootCause.getMessage();
+        if (message == null) {
+            return false;
+        }
+
+        String lowerCaseMessage = message.toLowerCase();
+
+        return lowerCaseMessage.contains("invalid address")
+            || lowerCaseMessage.contains("unknown user")
+            || lowerCaseMessage.contains("550 invalid");
     }
 }
