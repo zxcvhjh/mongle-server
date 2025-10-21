@@ -29,10 +29,8 @@ public class PostResponseMapper {
         boolean isAnonymous = post.isAnonymous();
         PostListResponse.PostSummary.Author authorDto;
 
-        if (author == null) {
+        if (author == null || isAnonymous) {
             authorDto = new PostListResponse.PostSummary.Author(null, "익명의 몽글러", null);
-        } else if (isAnonymous) {
-            authorDto = new PostListResponse.PostSummary.Author(author.getMemberId(), "익명의 몽글러", null);
         } else {
             // 프로필 이미지 URL 생성 로직
             String profileImageUrl = null;

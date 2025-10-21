@@ -156,7 +156,7 @@ public class PostQueryService {
 
         if (isAnonymous) {
             authorDto = new PostDetailResponse.Author(
-                    author.getMemberId(),
+                    null,
                     "익명의 몽글러",
                     null
             );
