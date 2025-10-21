@@ -41,7 +41,7 @@ public class CommentCommandService {
 
         Post post = postFinder.getPostOrThrow(postId);
 
-        boolean isAnonymous = dto.isAnonymous() != null && dto.isAnonymous();
+        boolean isAnonymous = isAnonymous(dto);
 
         Comment newComment = commentDomainService.createParentComment(post, author, dto.content(), isAnonymous);
 
@@ -56,7 +56,7 @@ public class CommentCommandService {
 
         Comment parent = commentFinder.getCommentOrThrow(parentCommentId);
 
-        boolean isAnonymous = dto.isAnonymous() != null && dto.isAnonymous();
+        boolean isAnonymous = isAnonymous(dto);
 
         Comment newComment = commentDomainService.createChildComment(parent, author, dto.content(), isAnonymous);
 
@@ -93,5 +93,9 @@ public class CommentCommandService {
         if (member.getStatus() == MemberStatus.DEACTIVATED) {
             throw new ApplicationException(MemberErrorCode.MEMBER_IS_DEACTIVATED);
         }
+    }
+
+    private boolean isAnonymous(CommentCreateRequest dto) {
+        return Boolean.TRUE.equals(dto.isAnonymous());
     }
 }
