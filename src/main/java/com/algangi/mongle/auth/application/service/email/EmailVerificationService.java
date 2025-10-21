@@ -7,6 +7,7 @@ import com.algangi.mongle.auth.presentation.dto.VerifyEmailResponse;
 import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.global.util.ClientIpUtils;
 import com.algangi.mongle.member.application.service.MemberFinder;
+import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -34,6 +35,8 @@ public class EmailVerificationService {
     @Value("${app.security.rate-limit.max-requests}")
     private int maxRequests;
 
+    private final EmailSanctionManager emailSanctionManager;
+
     public void sendVerificationCode(String email) {
         checkPolicies(email);
         memberFinder.validateDuplicateEmail(email);
@@ -41,31 +44,48 @@ public class EmailVerificationService {
         String code = generateRandomCode();
         emailVerificationCodeManager.save(email, code);
 
-        Map<String, Object> templateVariables = new HashMap<>();
+        Map<String, Object> templateVariables
+            = new HashMap<>();
         templateVariables.put("verificationCode", code);
 
-        mailSender.send(
-            email,
-            "Mongle 회원가입 인증 코드입니다.",
-            "email-verification",
-            templateVariables
-        );
+        try {
+            mailSender.send(
+                email,
+                "Mongle 회원가입 인증 코드입니다.",
+
+                "email-verification",
+                templateVariables
+            );
+        } catch (MessagingException e) {
+            throw new ApplicationException(AuthErrorCode.VERIFICATION_CODE_SEND_FAILED, e)
+                .addErrorInfo("email", email);
+        }
     }
 
     private void checkPolicies(String email) {
         checkIpRateLimit();
+        checkEmailSanctionPolicy(email);
     }
+
+    private void checkEmailSanctionPolicy(String email) {
+        if (emailSanctionManager.isBanned(email)) {
+            throw new ApplicationException(AuthErrorCode.EMAIL_IS_BANNED);
+        }
+    }
+
 
     private void checkIpRateLimit() {
         String clientIp = clientIpUtils.getClientIpAddress()
             .orElseThrow(() -> new IllegalStateException("Cannot determine client IP address"));
 
-        String rateLimitKey = "email-verification:ip-rate-limit:" + clientIp;
+        String rateLimitKey =
+            "email-verification:ip-rate-limit:" + clientIp;
 
         Long attempts = redisTemplate.opsForValue().increment(rateLimitKey);
 
         if (attempts == null) {
             throw new IllegalStateException(
+
                 "Redis increment operation failed for key: " + rateLimitKey);
         }
 
@@ -79,6 +99,7 @@ public class EmailVerificationService {
     }
 
     public VerifyEmailResponse verifyEmail(VerifyEmailRequest request) {
+
         String email = request.email();
         String verificationCode = request.verificationCode();
 
@@ -86,11 +107,13 @@ public class EmailVerificationService {
             throw new IllegalArgumentException("이메일 인증코드는 빈 값일 수 없습니다.");
         }
 
-        String savedCode = emailVerificationCodeManager.getCode(email);
+        String savedCode =
+            emailVerificationCodeManager.getCode(email);
         if (savedCode == null) {
             throw new ApplicationException(AuthErrorCode.VERIFICATION_CODE_EXPIRED);
         }
         if (!savedCode.equals(verificationCode)) {
+
             throw new ApplicationException(AuthErrorCode.VERIFICATION_CODE_MISMATCH);
         }
 

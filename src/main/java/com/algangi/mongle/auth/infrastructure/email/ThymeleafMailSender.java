@@ -21,21 +21,27 @@ import java.util.Map;
  * @Primary 어노테이션을 통해 기본 MailSender 구현으로 사용됩니다.
  */
 @Component
-@Primary // 이 구현체를 MailSender의 기본 구현으로 설정합니다.
-public class ThymeleafMailSender implements MailSender {
+@Primary
+public class ThymeleafMailSender
+    implements MailSender {
 
     private final JavaMailSender javaMailSender;
     private final TemplateEngine templateEngine;
     private final String fromAddress;
+    private final com.algangi.mongle.auth.application.service.email.EmailSanctionManager emailSanctionManager;
+
 
     public ThymeleafMailSender(
         JavaMailSender javaMailSender,
         TemplateEngine templateEngine,
-        @Value("${app.mail.from-address}") String fromAddress
+
+        @Value("${app.mail.from-address}") String fromAddress,
+        com.algangi.mongle.auth.application.service.email.EmailSanctionManager emailSanctionManager
     ) {
         this.javaMailSender = javaMailSender;
         this.templateEngine = templateEngine;
         this.fromAddress = fromAddress;
+        this.emailSanctionManager = emailSanctionManager;
     }
 
     /**
@@ -48,7 +54,9 @@ public class ThymeleafMailSender implements MailSender {
      */
     @Override
     public void send(String to, String subject, String templateName,
-        Map<String, Object> contextVariables) {
+        Map<String, Object> contextVariables)
+        throws MessagingException {
+
         Context context = new Context();
         context.setVariables(contextVariables);
 
@@ -66,7 +74,9 @@ public class ThymeleafMailSender implements MailSender {
             javaMailSender.send(mimeMessage);
 
         } catch (MessagingException e) {
-            throw new ApplicationException(AuthErrorCode.VERIFICATION_CODE_SEND_FAILED, e);
+            emailSanctionManager.recordHardBounceAndSanction(to);
+
+            throw e;
         }
     }
 }
