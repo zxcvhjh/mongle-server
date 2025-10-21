@@ -1,19 +1,19 @@
 package com.algangi.mongle.auth.application.service.email;
 
-import java.util.concurrent.ThreadLocalRandom;
-
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-
 import com.algangi.mongle.auth.exception.AuthErrorCode;
 import com.algangi.mongle.auth.presentation.dto.VerifyEmailRequest;
 import com.algangi.mongle.auth.presentation.dto.VerifyEmailResponse;
 import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.member.application.service.MemberFinder;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.Duration;
-import lombok.RequiredArgsConstructor;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -22,9 +22,10 @@ public class EmailVerificationService {
     private static final String RATE_LIMIT_KEY_PREFIX = "email-verification:rate-limit:";
     private static final Duration RATE_LIMIT_WINDOW = Duration.ofMinutes(1);
     private static final int MAX_ATTEMPTS = 3;
+
     private final RedisTemplate<String, String> redisTemplate;
     private final MemberFinder memberFinder;
-    private final MailSender mailSender;
+    private final MailSender mailSender; // ThymeleafMailSender가 주입됩니다.
     private final EmailVerificationCodeManager emailVerificationCodeManager;
     private final VerificationTokenManager verificationTokenManager;
 
@@ -49,7 +50,16 @@ public class EmailVerificationService {
 
         String code = generateRandomCode();
         emailVerificationCodeManager.save(email, code);
-        mailSender.send(email, "몽글(Mongle) 서비스 회원가입 인증 코드입니다.", "인증 코드는 [" + code + "] 입니다.");
+
+        Map<String, Object> templateVariables = new HashMap<>();
+        templateVariables.put("verificationCode", code);
+
+        mailSender.send(
+            email,
+            "Mongle 회원가입 인증 코드입니다.",
+            "email-verification",
+            templateVariables
+        );
     }
 
     public VerifyEmailResponse verifyEmail(VerifyEmailRequest request) {
