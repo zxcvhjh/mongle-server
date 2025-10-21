@@ -34,9 +34,7 @@ public enum AuthErrorCode implements ErrorCode {
     VERIFICATION_CODE_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "AUTH-023",
         "이메일 인증 코드 발송에 실패하였습니다."),
     EMAIL_IS_BANNED(HttpStatus.FORBIDDEN, "AUTH-025",
-        "해당 이메일은 발송 정책 위반으로 사용이 정지되었습니다. 관리자에게 문의하세요."),
-    EMAIL_HARD_BOUNCE_THRESHOLD_EXCEEDED(HttpStatus.FORBIDDEN, "AUTH-026",
-        "이메일 발송 실패 횟수(5회)를 초과하여 해당 이메일은 차단되었습니다.");
+        "해당 이메일은 발송 정책 위반으로 사용이 정지되었습니다. 관리자에게 문의하세요.");
 
 
     private final HttpStatus status;
