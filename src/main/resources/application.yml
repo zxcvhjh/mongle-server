@@ -90,9 +90,9 @@ mongle:
       bucket: ${BUCKET_NAME}
       presigned-url-expiration-minutes: ${PUT_PRESIGNED_URL_EXPIRATION_MIN}
     cloudfront:
-      domain: ${CLOUDFONT_DOMAIN}
-      private-key-file-path: ${CLOUDFONT_PRIVATE_KEY_FILE_PATH}
-      key-pair-id: ${CLOUDFONT_KEY_PAIR_ID}
+      domain: ${CLOUDFRONT_DOMAIN}
+      private-key-file-path: ${CLOUDFRONT_PRIVATE_KEY_FILE_PATH}
+      key-pair-id: ${CLOUDFRONT_KEY_PAIR_ID}
       presigned-url-expiration-minutes: ${GET_PRESIGNED_URL_EXPIRATION_MIN}
     sqs:
       post-file-update-queue-name: "mongle-post-file-update-queue"
