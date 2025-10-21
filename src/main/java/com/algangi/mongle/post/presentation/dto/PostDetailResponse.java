@@ -25,8 +25,18 @@ public record PostDetailResponse(
     long commentCount
 ) {
 
-    public static PostDetailResponse from(Post post, Author authorDto, PostStats stats,
+    public static PostDetailResponse from(Post post, Member author, PostStats stats,
         List<String> photoUrls, List<String> videoUrls, String myReaction) {
+
+        boolean isAnonymous = post.isAnonymous();
+        Author authorDto;
+
+        if (isAnonymous || author == null) {
+            authorDto = new Author(null, "익명의 몽글러", null);
+        } else {
+            authorDto = new Author(author.getMemberId(), author.getNickname(), author.getProfileImage());
+        }
+
         return new PostDetailResponse(
             post.getId(),
             authorDto,
