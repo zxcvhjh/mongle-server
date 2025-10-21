@@ -1,12 +1,12 @@
 package com.algangi.mongle.auth.infrastructure.email;
 
 import com.algangi.mongle.auth.application.service.email.MailSender;
-import com.algangi.mongle.auth.exception.AuthErrorCode;
-import com.algangi.mongle.global.exception.ApplicationException;
+import com.algangi.mongle.auth.application.service.email.EmailSanctionManager;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
@@ -15,11 +15,6 @@ import org.thymeleaf.context.Context;
 
 import java.util.Map;
 
-/**
- * Thymeleaf 템플릿 엔진을 사용하여 HTML 이메일을 발송하는 MailSender 구현체입니다.
- *
- * @Primary 어노테이션을 통해 기본 MailSender 구현으로 사용됩니다.
- */
 @Component
 @Primary
 public class ThymeleafMailSender
@@ -28,7 +23,7 @@ public class ThymeleafMailSender
     private final JavaMailSender javaMailSender;
     private final TemplateEngine templateEngine;
     private final String fromAddress;
-    private final com.algangi.mongle.auth.application.service.email.EmailSanctionManager emailSanctionManager;
+    private final EmailSanctionManager emailSanctionManager;
 
 
     public ThymeleafMailSender(
@@ -36,7 +31,7 @@ public class ThymeleafMailSender
         TemplateEngine templateEngine,
 
         @Value("${app.mail.from-address}") String fromAddress,
-        com.algangi.mongle.auth.application.service.email.EmailSanctionManager emailSanctionManager
+        EmailSanctionManager emailSanctionManager
     ) {
         this.javaMailSender = javaMailSender;
         this.templateEngine = templateEngine;
@@ -54,8 +49,7 @@ public class ThymeleafMailSender
      */
     @Override
     public void send(String to, String subject, String templateName,
-        Map<String, Object> contextVariables)
-        throws MessagingException {
+        Map<String, Object> contextVariables) throws MessagingException {
 
         Context context = new Context();
         context.setVariables(contextVariables);
@@ -73,10 +67,13 @@ public class ThymeleafMailSender
 
             javaMailSender.send(mimeMessage);
 
-        } catch (MessagingException e) {
+        } catch (MessagingException | MailException e) {
             emailSanctionManager.recordHardBounceAndSanction(to);
 
-            throw e;
+            if (e instanceof MessagingException) {
+                throw (MessagingException) e;
+            }
+            throw new MessagingException("메일 발송에 실패했습니다.", e);
         }
     }
 }
