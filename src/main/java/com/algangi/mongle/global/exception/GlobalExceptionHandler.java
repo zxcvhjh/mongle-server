@@ -1,5 +1,6 @@
 package com.algangi.mongle.global.exception;
 
+import com.algangi.mongle.auth.exception.RateLimitExceededException;
 import java.util.List;
 import java.util.Map;
 
@@ -77,5 +78,15 @@ public class GlobalExceptionHandler {
         HttpRequestMethodNotSupportedException exception) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(ApiResponse.error("HTTP_METHOD_NOT_SUPPORTED", "지원하지 않는 HTTP 메소드입니다."));
+    }
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleRateLimitExceededException(
+        RateLimitExceededException exception) {
+
+        ErrorCode errorCode = exception.getErrorCode();
+
+        return ResponseEntity.status(errorCode.getStatus())
+            .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage()));
     }
 }

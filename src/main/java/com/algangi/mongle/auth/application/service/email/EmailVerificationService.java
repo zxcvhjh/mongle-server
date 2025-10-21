@@ -1,11 +1,14 @@
 package com.algangi.mongle.auth.application.service.email;
 
 import com.algangi.mongle.auth.exception.AuthErrorCode;
+import com.algangi.mongle.auth.exception.RateLimitExceededException;
 import com.algangi.mongle.auth.presentation.dto.VerifyEmailRequest;
 import com.algangi.mongle.auth.presentation.dto.VerifyEmailResponse;
 import com.algangi.mongle.global.exception.ApplicationException;
+import com.algangi.mongle.global.util.ClientIpUtils;
 import com.algangi.mongle.member.application.service.MemberFinder;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -19,33 +22,21 @@ import java.util.concurrent.ThreadLocalRandom;
 @RequiredArgsConstructor
 public class EmailVerificationService {
 
-    private static final String RATE_LIMIT_KEY_PREFIX = "email-verification:rate-limit:";
-    private static final Duration RATE_LIMIT_WINDOW = Duration.ofMinutes(1);
-    private static final int MAX_ATTEMPTS = 3;
-
     private final RedisTemplate<String, String> redisTemplate;
     private final MemberFinder memberFinder;
-    private final MailSender mailSender; // ThymeleafMailSender가 주입됩니다.
+    private final MailSender mailSender;
     private final EmailVerificationCodeManager emailVerificationCodeManager;
     private final VerificationTokenManager verificationTokenManager;
+    private final ClientIpUtils clientIpUtils;
+
+    @Value("${app.security.rate-limit.duration-minutes}")
+    private long rateLimitDurationMinutes;
+
+    @Value("${app.security.rate-limit.max-requests}")
+    private int maxRequests;
 
     public void sendVerificationCode(String email) {
-        String rateLimitKey = RATE_LIMIT_KEY_PREFIX + email;
-        Long attempts = redisTemplate.opsForValue().increment(rateLimitKey);
-
-        if (attempts == null) {
-            throw new IllegalStateException(
-                "Redis increment operation failed for key: " + rateLimitKey);
-        }
-
-        if (attempts == 1) {
-            redisTemplate.expire(rateLimitKey, RATE_LIMIT_WINDOW);
-        }
-
-        if (attempts > MAX_ATTEMPTS) {
-            throw new ApplicationException(AuthErrorCode.VERIFICATION_CODE_TRY_EXCEEDED);
-        }
-
+        checkIpRateLimit();
         memberFinder.validateDuplicateEmail(email);
 
         String code = generateRandomCode();
@@ -60,6 +51,28 @@ public class EmailVerificationService {
             "email-verification",
             templateVariables
         );
+    }
+
+    private void checkIpRateLimit() {
+        String clientIp = clientIpUtils.getClientIpAddress()
+            .orElseThrow(() -> new IllegalStateException("Cannot determine client IP address"));
+
+        String rateLimitKey = "email-verification:ip-rate-limit:" + clientIp;
+
+        Long attempts = redisTemplate.opsForValue().increment(rateLimitKey);
+
+        if (attempts == null) {
+            throw new IllegalStateException(
+                "Redis increment operation failed for key: " + rateLimitKey);
+        }
+
+        if (attempts == 1) {
+            redisTemplate.expire(rateLimitKey, Duration.ofMinutes(rateLimitDurationMinutes));
+        }
+
+        if (attempts > maxRequests) {
+            throw new RateLimitExceededException();
+        }
     }
 
     public VerifyEmailResponse verifyEmail(VerifyEmailRequest request) {
@@ -88,3 +101,4 @@ public class EmailVerificationService {
         return String.valueOf(ThreadLocalRandom.current().nextInt(100000, 1000000));
     }
 }
+
