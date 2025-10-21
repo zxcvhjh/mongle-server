@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.algangi.mongle.postViewLog.application.service.PostViewLogService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +38,7 @@ public class WithdrawalCleanupService {
     private final LogoutService logoutService;
     private final FileService fileService;
     private final MemberFinder memberFinder;
+    private final PostViewLogService postViewLogService;
 
     // 사용자 프로필 삭제, 소셜 계정 연동 삭제, 세션/토큰 무효화 처리 필요
     @Transactional
@@ -72,6 +74,9 @@ public class WithdrawalCleanupService {
         // 리액션 정리
         contentStatsService.removeReactionsFromRedis(memberId, reactions);
         reactionRepository.deleteAllByMemberId(memberId);
+
+        // 게시물 조회 기록 정리
+        postViewLogService.cleanupViewLogs(memberId);
 
         // 게시글, 댓글 정리
         contentManagementService.cleanupRedisDataForComments(commentIds, postCommentCountDelta,

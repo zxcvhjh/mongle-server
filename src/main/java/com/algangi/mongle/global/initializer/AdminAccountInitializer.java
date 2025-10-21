@@ -1,4 +1,4 @@
-package com.algangi.mongle.global.config;
+package com.algangi.mongle.global.initializer;
 
 import java.util.List;
 

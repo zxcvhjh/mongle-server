@@ -22,7 +22,7 @@ public interface ReactionRepository extends JpaRepository<Reaction, String> {
             "WHERE r.targetType = :targetType AND r.targetId IN :targetIds")
     void deleteAllByTargetTypeAndTargetIdIn(@Param("targetType") TargetType targetType, @Param("targetIds") List<String> targetIds);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Transactional
     @Query("DELETE FROM Reaction r WHERE r.member.memberId = :memberId")
     void deleteAllByMemberId(@Param("memberId") String memberId);
