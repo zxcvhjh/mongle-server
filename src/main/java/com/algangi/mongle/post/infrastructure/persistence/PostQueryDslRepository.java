@@ -32,7 +32,8 @@ public class PostQueryDslRepository implements PostQueryRepository {
         JPAQuery<Post> query = queryFactory
             .selectFrom(post)
             .where(
-                post.status.eq(PostStatus.ACTIVE),
+                post.status.in(PostStatus.ACTIVE, PostStatus.PENDING),
+                post.status.ne(PostStatus.BLOCKED_BY_REPORTS),
                 eqPlaceId(request.placeId()),
                 eqCloudId(request.cloudId()),
                 cursorCondition(request.cursor(), request.sortBy()),
@@ -50,6 +51,7 @@ public class PostQueryDslRepository implements PostQueryRepository {
             .selectFrom(post)
             .where(
                 post.status.eq(PostStatus.ACTIVE),
+                post.status.ne(PostStatus.BLOCKED_BY_REPORTS),
                 post.s2TokenId.in(s2cellTokens),
                 post.staticCloudId.isNull(),
                 post.dynamicCloudId.isNull(),
@@ -62,7 +64,11 @@ public class PostQueryDslRepository implements PostQueryRepository {
     public Map<Long, Long> countPostsByStaticCloudIds(List<Long> cloudIds) {
         return queryFactory
             .from(post)
-            .where(post.staticCloudId.in(cloudIds))
+            .where(
+                post.staticCloudId.in(cloudIds)
+                    .and(post.status.in(PostStatus.ACTIVE, PostStatus.PENDING))
+                    .and(post.status.ne(PostStatus.BLOCKED_BY_REPORTS))
+            )
             .groupBy(post.staticCloudId)
             .transform(GroupBy.groupBy(post.staticCloudId).as(post.count()));
     }
@@ -71,7 +77,11 @@ public class PostQueryDslRepository implements PostQueryRepository {
     public Map<Long, Long> countPostsByDynamicCloudIds(List<Long> cloudIds) {
         return queryFactory
             .from(post)
-            .where(post.dynamicCloudId.in(cloudIds))
+            .where(
+                post.dynamicCloudId.in(cloudIds)
+                    .and(post.status.in(PostStatus.ACTIVE, PostStatus.PENDING))
+                    .and(post.status.ne(PostStatus.BLOCKED_BY_REPORTS))
+            )
             .groupBy(post.dynamicCloudId)
             .transform(GroupBy.groupBy(post.dynamicCloudId).as(post.count()));
     }
