@@ -82,9 +82,9 @@ public final class CommentResponseMapper {
             return new AuthorInfoResponse(null, MASKED_NICKNAME, null);
         }
         if (isAnonymous) {
-
-            return new AuthorInfoResponse(null, ANONYMOUS_NICKNAME, null);
+            return new AuthorInfoResponse(author.getMemberId(), ANONYMOUS_NICKNAME, null);
         }
+
 
         String profileImageUrl = null;
         String profileImageKey = author.getProfileImage();

@@ -94,8 +94,10 @@ public class MapQueryService {
                 boolean isAnonymous = post.isAnonymous();
                 MapObjectsResponse.Grain.Author authorDto;
 
-                if (author == null || isAnonymous) {
+                if (author == null) {
                     authorDto = new MapObjectsResponse.Grain.Author(null, "익명의 몽글러", null);
+                } else if (isAnonymous) {
+                    authorDto = new MapObjectsResponse.Grain.Author(author.getMemberId(), "익명의 몽글러", null);
                 } else {
                     String profileImageUrl = null;
                     if (post.getStatus() == PostStatus.ACTIVE && author.getProfileImage() != null) {
