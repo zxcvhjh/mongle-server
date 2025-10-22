@@ -22,10 +22,13 @@ public class ReportController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<Void>> createReport(
-        @AuthenticationPrincipal(expression = "#this == 'anonymousUser' ? null : userDetails") CustomUserDetails userDetails,
+        @AuthenticationPrincipal CustomUserDetails userDetails,
         @Valid @RequestBody ReportCreateRequest request) {
-
-        String reporterId = (userDetails != null) ? userDetails.userId() : null;
+        
+        String reporterId = (userDetails != null && userDetails.userId() != null
+            && !userDetails.userId().equals("anonymousUser"))
+            ? userDetails.userId()
+            : null;
 
         reportCommandService.createReport(reporterId, request);
         return ResponseEntity.ok(ApiResponse.success());

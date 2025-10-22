@@ -1,7 +1,6 @@
 package com.algangi.mongle.auth.application.service.email;
 
 import com.algangi.mongle.auth.exception.AuthErrorCode;
-import com.algangi.mongle.auth.exception.RateLimitExceededException;
 import com.algangi.mongle.auth.presentation.dto.VerifyEmailRequest;
 import com.algangi.mongle.auth.presentation.dto.VerifyEmailResponse;
 import com.algangi.mongle.global.exception.ApplicationException;
