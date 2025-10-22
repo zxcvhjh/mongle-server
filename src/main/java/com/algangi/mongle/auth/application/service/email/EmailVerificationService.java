@@ -51,7 +51,6 @@ public class EmailVerificationService {
             mailSender.send(
                 email,
                 "Mongle 회원가입 인증 코드입니다.",
-
                 "email-verification",
                 templateVariables
             );
@@ -84,7 +83,6 @@ public class EmailVerificationService {
 
         if (attempts == null) {
             throw new IllegalStateException(
-
                 "Redis increment operation failed for key: " + rateLimitKey);
         }
 
@@ -93,7 +91,7 @@ public class EmailVerificationService {
         }
 
         if (attempts > maxRequests) {
-            throw new RateLimitExceededException();
+            throw new ApplicationException(AuthErrorCode.VERIFICATION_CODE_TRY_EXCEEDED);
         }
     }
 
