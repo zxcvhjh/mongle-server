@@ -37,7 +37,7 @@ public class ReportCommandService {
     private static final String IP_RATE_LIMIT_KEY_PREFIX = "report:ip-rate-limit:";
     private static final int MAX_IP_REPORTS_PER_HOUR = 10;
     private static final Duration IP_RATE_LIMIT_DURATION = Duration.ofHours(1);
-
+    private static final String DEACTIVATED_USER_ID = "DEACTIVATED";
     private final ReportRepository reportRepository;
     private final MemberFinder memberFinder;
     private final PostFinder postFinder;
@@ -47,7 +47,7 @@ public class ReportCommandService {
 
     @Transactional
     public void createReport(String reporterId, ReportCreateRequest request) {
-        
+
         if (reporterId == null) {
             handleUnauthenticatedReport(request);
             return;
@@ -57,7 +57,8 @@ public class ReportCommandService {
         String targetAuthorId = getTargetAuthorIdAndValidate(request.targetType(),
             request.targetId());
 
-        if (Objects.equals(reporter.getMemberId(), targetAuthorId)) {
+        if (Objects.equals(reporter.getMemberId(), targetAuthorId) && !targetAuthorId.equals(
+            DEACTIVATED_USER_ID)) {
             throw new ApplicationException(ReportErrorCode.SELF_REPORT_NOT_ALLOWED);
         }
 
@@ -151,17 +152,13 @@ public class ReportCommandService {
             case POST -> {
                 Post post = postFinder.getPostOrThrow(targetId);
                 yield Optional.ofNullable(post.getAuthorId())
-                    .orElseThrow(() -> new ApplicationException(ReportErrorCode.TARGET_NOT_FOUND)
-                        .addErrorInfo("targetId", targetId)
-                        .addErrorInfo("reason", "Post's author is null"));
+                    .orElse(DEACTIVATED_USER_ID);
             }
             case COMMENT -> {
                 Comment comment = commentFinder.getCommentOrThrow(targetId);
                 yield Optional.ofNullable(comment.getMember())
                     .map(Member::getMemberId)
-                    .orElseThrow(() -> new ApplicationException(ReportErrorCode.TARGET_NOT_FOUND)
-                        .addErrorInfo("targetId", targetId)
-                        .addErrorInfo("reason", "Comment's author is null"));
+                    .orElse(DEACTIVATED_USER_ID);
             }
         };
     }
