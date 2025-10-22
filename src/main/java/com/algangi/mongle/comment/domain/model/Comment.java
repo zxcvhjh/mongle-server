@@ -30,7 +30,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder(access = AccessLevel.PRIVATE)
 @Getter
-public class Comment extends TimeBaseEntity implements CursorConvertible {
+public class Comment extends TimeBaseEntity implements
+    CursorConvertible {
 
     private static final int REPORT_BLOCK_THRESHOLD = 5;
 
@@ -42,7 +43,8 @@ public class Comment extends TimeBaseEntity implements CursorConvertible {
     @Column(nullable = false)
     private String content;
 
-    @Column(nullable = false)
+    @Column(nullable
+        = false)
     @Builder.Default
     private long likeCount = 0;
 
@@ -52,7 +54,8 @@ public class Comment extends TimeBaseEntity implements CursorConvertible {
 
     @Column(nullable = false)
     @Builder.Default
-    private long reportCount = 0;
+    private long reportCount
+        = 0;
 
     @Version
     private Long version;
@@ -64,7 +67,6 @@ public class Comment extends TimeBaseEntity implements CursorConvertible {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id", nullable = false)
     private Post post;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = true)
     private Member member;
@@ -75,15 +77,18 @@ public class Comment extends TimeBaseEntity implements CursorConvertible {
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
+
     @Builder.Default
     private CommentStatus status = CommentStatus.ACTIVE;
 
     public static Comment createParentComment(String content, Post post, Member member,
         boolean isAnonymous) {
         Comment comment = Comment.builder()
+
             .content(content)
             .post(post)
             .parentComment(null)
+
             .member(member)
             .isAnonymous(isAnonymous)
             .build();
@@ -93,7 +98,8 @@ public class Comment extends TimeBaseEntity implements CursorConvertible {
         return comment;
     }
 
-    public static Comment createChildComment(String content, Comment parentComment, Member member,
+    public static Comment createChildComment(String content, Comment parentComment,
+        Member member,
         boolean isAnonymous) {
         if (parentComment.isChildComment()) {
             throw new IllegalArgumentException("대댓글에 대댓글을 달 수 없습니다.");
@@ -102,6 +108,7 @@ public class Comment extends TimeBaseEntity implements CursorConvertible {
         Comment comment = Comment.builder()
             .content(content)
             .parentComment(parentComment)
+
             .post(parentComment.getPost())
             .member(member)
             .isAnonymous(isAnonymous)
@@ -109,7 +116,8 @@ public class Comment extends TimeBaseEntity implements CursorConvertible {
 
         parentComment.getPost().addComment(comment);
 
-        return comment;
+        return
+            comment;
     }
 
     public boolean isChildComment() {
@@ -127,26 +135,30 @@ public class Comment extends TimeBaseEntity implements CursorConvertible {
         if (isDeleted()) {
             throw new ApplicationException(CommentErrorCode.ALREADY_DELETED);
         }
-        this.status = CommentStatus.DELETED_BY_USER;
+        this.status =
+            CommentStatus.DELETED_BY_USER;
     }
 
     public void softDeleteByAdmin() {
         if (isDeleted()) {
             throw new ApplicationException(CommentErrorCode.ALREADY_DELETED);
         }
-        this.status = CommentStatus.DELETED_BY_ADMIN;
+        this.status
+            = CommentStatus.DELETED_BY_ADMIN;
     }
 
     public void increaseLikeCount(long delta) {
         if (delta == 0) {
             return;
         }
+
         long newCount = this.likeCount + delta;
         this.likeCount = Math.max(newCount, 0);
     }
 
     public void increaseDislikeCount(long delta) {
         if (delta == 0) {
+
             return;
         }
         long newCount = this.dislikeCount + delta;
@@ -156,6 +168,7 @@ public class Comment extends TimeBaseEntity implements CursorConvertible {
     public void setPost(Post post) {
         this.post = post;
     }
+
 
     public void incrementReportCountAndBlockIfNeeded() {
         if (this.status != CommentStatus.ACTIVE) {
@@ -170,6 +183,7 @@ public class Comment extends TimeBaseEntity implements CursorConvertible {
 
     @Override
     public String getId() {
+
         return this.id;
     }
 
@@ -180,6 +194,7 @@ public class Comment extends TimeBaseEntity implements CursorConvertible {
 
     @Override
     public Instant getCreatedAt() {
+
         return this.getCreatedDate();
     }
 

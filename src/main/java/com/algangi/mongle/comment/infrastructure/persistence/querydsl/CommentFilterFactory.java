@@ -15,6 +15,7 @@ import java.util.List;
 public class CommentFilterFactory {
 
     public BooleanExpression eqPostId(String postId) {
+
         if (postId == null) {
             return null;
         }
@@ -22,6 +23,7 @@ public class CommentFilterFactory {
     }
 
     public BooleanExpression eqParentId(String parentId) {
+
         if (parentId == null) {
             return null;
         }
@@ -29,6 +31,7 @@ public class CommentFilterFactory {
     }
 
     public BooleanExpression isParentComment() {
+
         return comment.parentComment.isNull();
     }
 
@@ -37,12 +40,14 @@ public class CommentFilterFactory {
     }
 
     public BooleanExpression notInBlockedMemberIds(List<String> blockedMemberIds,
-        QComment qComment) {
+        QComment
+            qComment) {
         if (blockedMemberIds == null || blockedMemberIds.isEmpty()) {
             return null;
         }
         return qComment.member.memberId.notIn(blockedMemberIds);
     }
+
 
     public BooleanExpression notDeletedByWithdrawal(QComment qComment) {
         return qComment.status.ne(CommentStatus.DELETED_BY_WITHDRAWAL);
@@ -51,10 +56,12 @@ public class CommentFilterFactory {
     public BooleanExpression notBlockedByReports(QComment qComment) {
         return qComment.status.ne(CommentStatus.BLOCKED_BY_REPORTS);
     }
-    
+
     public BooleanExpression isActive(QComment qComment) {
-        return qComment.status.eq(CommentStatus.ACTIVE)
-            .and(notBlockedByReports(qComment))
+        return qComment.status.in(CommentStatus.ACTIVE,
+                CommentStatus.DELETED_BY_USER,
+                CommentStatus.DELETED_BY_ADMIN,
+                CommentStatus.BLOCKED_BY_REPORTS)
             .and(notDeletedByWithdrawal(qComment));
     }
 }
