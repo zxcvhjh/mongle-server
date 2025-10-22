@@ -6,9 +6,6 @@ import java.util.stream.Stream;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import com.algangi.mongle.comment.domain.repository.CommentRepository;
-import com.algangi.mongle.post.domain.repository.PostRepository;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -16,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class ContentManagementService {
-    
+
     private final RedisTemplate<String, String> redisTemplate;
 
     public void cleanupRedisDataForComments(List<String> commentIds,
