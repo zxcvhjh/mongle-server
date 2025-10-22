@@ -2,17 +2,14 @@ package com.algangi.mongle.member.application.service;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.algangi.mongle.comment.domain.model.Comment;
 import com.algangi.mongle.comment.domain.repository.CommentRepository;
-import com.algangi.mongle.post.domain.model.Post;
 import com.algangi.mongle.post.domain.model.PostStatus;
 import com.algangi.mongle.post.domain.repository.PostRepository;
 
@@ -28,14 +25,6 @@ public class ContentManagementService {
     private final PostRepository postRepository;
     private final ContentManagementDbService dbService;
     private final RedisTemplate<String, String> redisTemplate;
-
-    // 신고 기능 개편으로 인해, 사용자 단위 제재 로직(ContentManagementService.processCommentsOfBannedUser, processPostsOfBannedUser)은 제거되었습니다.
-
-    private List<Comment> findCommentsByBannedUser(String bannedMemberId) {
-        return commentRepository.findAllByMemberIdAndPostStatusIn(
-            bannedMemberId, List.of(PostStatus.PENDING, PostStatus.ACTIVE)
-        );
-    }
 
     public void cleanupRedisDataForComments(List<String> commentIds,
         Map<String, Long> postCommentCountDelta, Map<String, List<String>> commentsByPost) {
