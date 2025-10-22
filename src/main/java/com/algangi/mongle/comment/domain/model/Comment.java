@@ -159,7 +159,7 @@ public class Comment extends TimeBaseEntity implements CursorConvertible {
 
     public void incrementReportCountAndBlockIfNeeded() {
         if (this.status != CommentStatus.ACTIVE) {
-            throw new ApplicationException(CommentErrorCode.COMMENT_NOT_FOUND);
+            throw new ApplicationException(CommentErrorCode.INVALID_STATUS);
         }
 
         this.reportCount += 1;

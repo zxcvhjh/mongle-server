@@ -15,7 +15,9 @@ public enum PostErrorCode implements ErrorCode {
     CLOUD_NOT_FOUND(HttpStatus.NOT_FOUND, "POST-002", "요청한 구름이 존재하지 않습니다."),
     POST_ACCESS_DENIED(HttpStatus.FORBIDDEN, "POST-003", "게시글에 대한 권한이 없습니다."),
     POST_RATE_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "POST-004", "게시글은 3분마다 최대 하나씩 생성 가능합니다."),
-    DUPLICATE_POST_IN_CELL(HttpStatus.CONFLICT, "POST-005", "게시글은 셀 당 하나만 생성 가능합니다.");
+    DUPLICATE_POST_IN_CELL(HttpStatus.CONFLICT, "POST-005", "게시글은 셀 당 하나만 생성 가능합니다."),
+    INVALID_STATUS(HttpStatus.BAD_REQUEST, "POST-006",
+        "게시글이 신고 불가능한 상태입니다."); // <<< 추가: 신고 불가능 상태 표시
 
     private final HttpStatus status;
     private final String code;

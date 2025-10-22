@@ -11,7 +11,9 @@ public enum CommentErrorCode implements ErrorCode {
 
     ALREADY_DELETED(HttpStatus.BAD_REQUEST, "COMMENT-001", "이미 삭제된 댓글입니다."),
     COMMENT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "COMMENT-002", "댓글에 대한 권한이 없습니다."),
-    COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "COMMENT-003", "댓글을 찾을 수 없습니다.");
+    COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "COMMENT-003", "댓글을 찾을 수 없습니다."),
+    INVALID_STATUS(HttpStatus.BAD_REQUEST, "COMMENT-004",
+        "댓글이 신고 불가능한 상태입니다.");
 
     private final HttpStatus status;
     private final String code;

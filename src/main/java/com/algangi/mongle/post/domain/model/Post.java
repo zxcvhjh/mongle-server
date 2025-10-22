@@ -238,7 +238,7 @@ public class Post extends TimeBaseEntity {
 
     public void incrementReportCountAndBlockIfNeeded() {
         if (this.status != PostStatus.ACTIVE) {
-            throw new ApplicationException(PostErrorCode.POST_NOT_FOUND);
+            throw new ApplicationException(PostErrorCode.INVALID_STATUS);
         }
 
         this.reportCount += 1;
