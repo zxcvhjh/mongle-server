@@ -29,10 +29,10 @@ public class CommentCursorParser {
         var created = ParsingUtil.parseDate(parts[0]);
         String id = parts[1];
 
-        return comment.createdDate.lt(created)
+        return comment.createdDate.gt(created)
                 .or(
                         comment.createdDate.eq(created)
-                                .and(comment.id.lt(id))
+                                .and(comment.id.gt(id))
                 );
     }
 
@@ -46,12 +46,12 @@ public class CommentCursorParser {
         return comment.likeCount.lt(like)
                 .or(
                         comment.likeCount.eq(like)
-                                .and(comment.createdDate.lt(created))
+                                .and(comment.createdDate.gt(created))
                 )
                 .or(
                         comment.likeCount.eq(like)
                                 .and(comment.createdDate.eq(created))
-                                .and(comment.id.lt(id))
+                                .and(comment.id.gt(id))
                 );
     }
 }

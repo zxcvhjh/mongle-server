@@ -11,17 +11,17 @@ public class CommentOrderFactory {
 
     public OrderSpecifier<?>[] createOrderSpecifiers(CommentSort sort) {
         CommentSort finalSort =
-                (sort == null) ? CommentSort.LIKES : sort;
+                (sort == null) ? CommentSort.LATEST : sort;
 
         return switch (finalSort) {
             case LIKES -> new OrderSpecifier[]{
                     comment.likeCount.desc(),
-                    comment.createdDate.desc(),
-                    comment.id.desc()
+                    comment.createdDate.asc(),
+                    comment.id.asc()
             };
             case LATEST -> new OrderSpecifier[]{
-                    comment.createdDate.desc(),
-                    comment.id.desc()
+                    comment.createdDate.asc(),
+                    comment.id.asc()
             };
         };
     }
