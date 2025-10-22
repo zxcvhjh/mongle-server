@@ -4,6 +4,11 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
+
 import com.algangi.mongle.global.util.ClientIpUtils;
 import com.algangi.mongle.report.exception.ReportErrorCode;
 import lombok.extern.slf4j.Slf4j;
@@ -26,11 +31,6 @@ import com.algangi.mongle.report.domain.repository.ReportRepository;
 import com.algangi.mongle.report.presentation.dto.ReportCreateRequest;
 
 import lombok.RequiredArgsConstructor;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
-
 
 @Service
 @RequiredArgsConstructor
@@ -103,15 +103,7 @@ public class ReportCommandService {
         log.debug("Unauthenticated report recorded. TargetType={}, TargetId={}, IP(hash)={}",
             request.targetType(), request.targetId(),
             clientIpUtils.getClientIpAddress()
-                .map(ip -> {
-                    try {
-                        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-                        byte[] hash = digest.digest(ip.getBytes(StandardCharsets.UTF_8));
-                        return HexFormat.of().formatHex(hash).substring(0, 16);
-                    } catch (NoSuchAlgorithmException e) {
-                        return HASH_ERROR_STRING;
-                    }
-                }).orElse("UNKNOWN"));
+                .map(this::hashIPForLogging).orElse("UNKNOWN"));
     }
 
     private void checkIpRateLimit() {
@@ -133,7 +125,8 @@ public class ReportCommandService {
         }
 
         if (attempts > MAX_IP_REPORTS_PER_HOUR) {
-            log.warn("IP Rate Limit Exceeded: IP={}, Attempts={}", clientIp, attempts);
+            log.warn("IP Rate Limit Exceeded: IP(hash)={}, Attempts={}",
+                hashIPForLogging(clientIp), attempts);
             throw new ApplicationException(ReportErrorCode.REPORT_RATE_LIMIT_EXCEEDED);
         }
     }
@@ -173,5 +166,21 @@ public class ReportCommandService {
                     .orElse(null);
             }
         };
+    }
+
+    /**
+     * IP 주소를 SHA-256 해싱 후 처음 16자리만 반환하여 로깅에 사용합니다.
+     *
+     * @param ip 로깅할 원본 IP 주소
+     * @return 해싱된 IP 문자열의 접두사
+     */
+    private String hashIPForLogging(String ip) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(ip.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash).substring(0, 16);
+        } catch (NoSuchAlgorithmException e) {
+            return HASH_ERROR_STRING;
+        }
     }
 }
