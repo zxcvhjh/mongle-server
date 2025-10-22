@@ -45,13 +45,6 @@ for i in {1..10}; do
 done
 
 echo "!!! Deployment failed: Health check timed out."
-
-# 🚨 디버깅을 위해 실패한 컨테이너를 유지하고 로그를 출력하도록 수정
-echo ">>> Container logs for debugging:"
-docker logs $TARGET_CONTAINER
-
-# 🚨 컨테이너 삭제/중지 명령은 주석 처리하여 수동 확인 가능하도록 유지
-# docker stop $TARGET_CONTAINER
-# docker rm $TARGET_CONTAINER
-
+docker stop $TARGET_CONTAINER
+docker rm $TARGET_CONTAINER
 exit 1
