@@ -1,21 +1,27 @@
 package com.algangi.mongle.report.application.service;
 
+import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 
+import com.algangi.mongle.auth.exception.RateLimitExceededException;
+import com.algangi.mongle.global.util.ClientIpUtils;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.algangi.mongle.comment.domain.model.Comment;
 import com.algangi.mongle.comment.domain.service.CommentFinder;
 import com.algangi.mongle.global.exception.ApplicationException;
-import com.algangi.mongle.member.application.service.ContentManagementService;
 import com.algangi.mongle.member.application.service.MemberFinder;
 import com.algangi.mongle.member.domain.model.Member;
-import com.algangi.mongle.member.domain.model.MemberStatus;
 import com.algangi.mongle.post.application.helper.PostFinder;
 import com.algangi.mongle.post.domain.model.Post;
 import com.algangi.mongle.report.domain.model.Report;
 import com.algangi.mongle.report.domain.model.ReportStatus;
+import com.algangi.mongle.report.domain.model.ReportedTargetType;
 import com.algangi.mongle.report.domain.repository.ReportRepository;
 import com.algangi.mongle.report.exception.ReportErrorCode;
 import com.algangi.mongle.report.presentation.dto.ReportCreateRequest;
@@ -24,21 +30,32 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ReportCommandService {
 
-    private static final int SANCTION_THRESHOLD = 3;
+    private static final int REPORT_BLOCK_THRESHOLD = 5;
+    private static final String IP_RATE_LIMIT_KEY_PREFIX = "report:ip-rate-limit:";
+    private static final int MAX_IP_REPORTS_PER_HOUR = 10;
+    private static final Duration IP_RATE_LIMIT_DURATION = Duration.ofHours(1);
 
     private final ReportRepository reportRepository;
     private final MemberFinder memberFinder;
     private final PostFinder postFinder;
     private final CommentFinder commentFinder;
-    private final ContentManagementService contentManagementService;
+    private final RedisTemplate<String, String> redisTemplate;
+    private final ClientIpUtils clientIpUtils;
 
     @Transactional
     public void createReport(String reporterId, ReportCreateRequest request) {
-        Member reporter = memberFinder.getMemberOrThrow(reporterId);
+        
+        if (reporterId == null) {
+            handleUnauthenticatedReport(request);
+            return;
+        }
 
-        String targetAuthorId = getTargetAuthorIdAndValidate(request);
+        Member reporter = memberFinder.getMemberOrThrow(reporterId);
+        String targetAuthorId = getTargetAuthorIdAndValidate(request.targetType(),
+            request.targetId());
 
         if (Objects.equals(reporter.getMemberId(), targetAuthorId)) {
             throw new ApplicationException(ReportErrorCode.SELF_REPORT_NOT_ALLOWED);
@@ -59,7 +76,52 @@ public class ReportCommandService {
 
         reportRepository.save(report);
 
-        applySanctionIfNeeded(targetAuthorId);
+        incrementReportCountAndBlockIfNeeded(request.targetType(), request.targetId());
+    }
+
+    private void handleUnauthenticatedReport(ReportCreateRequest request) {
+        checkIpRateLimit();
+
+        String targetAuthorId = getTargetAuthorIdAndValidate(request.targetType(),
+            request.targetId());
+
+        Report report = Report.builder()
+            .reporter(null)
+            .targetId(request.targetId())
+            .targetType(request.targetType())
+            .targetAuthorId(targetAuthorId)
+            .reason(request.reason())
+            .build();
+
+        reportRepository.save(report);
+
+        log.info("Unauthenticated report received and recorded. TargetType={}, TargetId={}, IP={}",
+            request.targetType(), request.targetId(),
+            clientIpUtils.getClientIpAddress().orElse("UNKNOWN"));
+    }
+
+    private void checkIpRateLimit() {
+        String clientIp = clientIpUtils.getClientIpAddress()
+            .orElseThrow(() -> new IllegalStateException("Cannot determine client IP address"));
+
+        String rateLimitKey = IP_RATE_LIMIT_KEY_PREFIX + clientIp;
+        ValueOperations<String, String> ops = redisTemplate.opsForValue();
+
+        Long attempts = ops.increment(rateLimitKey);
+
+        if (attempts == null) {
+            throw new IllegalStateException(
+                "Redis increment operation failed for key: " + rateLimitKey);
+        }
+
+        if (attempts == 1) {
+            redisTemplate.expire(rateLimitKey, IP_RATE_LIMIT_DURATION);
+        }
+
+        if (attempts > MAX_IP_REPORTS_PER_HOUR) {
+            log.warn("IP Rate Limit Exceeded: IP={}, Attempts={}", clientIp, attempts);
+            throw new RateLimitExceededException();
+        }
     }
 
     @Transactional
@@ -70,35 +132,36 @@ public class ReportCommandService {
         report.updateStatus(newStatus);
     }
 
-    @Transactional
-    public void banUser(String memberId) {
-        // Banned 유저의 게시글 및 댓글 처리
-        contentManagementService.processPostsOfBannedUser(memberId);
-        contentManagementService.processCommentsOfBannedUser(memberId);
-    }
-
-    private void applySanctionIfNeeded(String targetAuthorId) {
-        long reportCount = reportRepository.countByTargetAuthorIdAndReportStatus(targetAuthorId,
-            ReportStatus.RECEIVED);
-
-        if (reportCount >= SANCTION_THRESHOLD) {
-            Member targetAuthor = memberFinder.getMemberWithLockOrThrow(targetAuthorId);
-            if (targetAuthor.getStatus() == MemberStatus.ACTIVE) {
-                targetAuthor.ban();
-                banUser(targetAuthorId);
+    private void incrementReportCountAndBlockIfNeeded(ReportedTargetType targetType,
+        String targetId) {
+        switch (targetType) {
+            case POST -> {
+                Post post = postFinder.getPostWithPessimisticLockOrThrow(targetId);
+                post.incrementReportCountAndBlockIfNeeded();
+            }
+            case COMMENT -> {
+                Comment comment = commentFinder.getCommentWithPessimisticLockOrThrow(targetId);
+                comment.incrementReportCountAndBlockIfNeeded();
             }
         }
     }
 
-    private String getTargetAuthorIdAndValidate(ReportCreateRequest request) {
-        return switch (request.targetType()) {
+    private String getTargetAuthorIdAndValidate(ReportedTargetType targetType, String targetId) {
+        return switch (targetType) {
             case POST -> {
-                Post post = postFinder.getPostOrThrow(request.targetId());
-                yield post.getAuthorId();
+                Post post = postFinder.getPostOrThrow(targetId);
+                yield Optional.ofNullable(post.getAuthorId())
+                    .orElseThrow(() -> new ApplicationException(ReportErrorCode.TARGET_NOT_FOUND)
+                        .addErrorInfo("targetId", targetId)
+                        .addErrorInfo("reason", "Post's author is null"));
             }
             case COMMENT -> {
-                Comment comment = commentFinder.getCommentOrThrow(request.targetId());
-                yield comment.getMember().getMemberId();
+                Comment comment = commentFinder.getCommentOrThrow(targetId);
+                yield Optional.ofNullable(comment.getMember())
+                    .map(Member::getMemberId)
+                    .orElseThrow(() -> new ApplicationException(ReportErrorCode.TARGET_NOT_FOUND)
+                        .addErrorInfo("targetId", targetId)
+                        .addErrorInfo("reason", "Comment's author is null"));
             }
         };
     }
