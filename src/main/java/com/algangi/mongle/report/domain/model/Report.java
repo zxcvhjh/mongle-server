@@ -38,7 +38,7 @@ public class Report extends CreatedDateBaseEntity {
     private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reporter_id", nullable = false)
+    @JoinColumn(name = "reporter_id", nullable = true)
     private Member reporter;
 
     @Column(name = "target_id", nullable = false)
