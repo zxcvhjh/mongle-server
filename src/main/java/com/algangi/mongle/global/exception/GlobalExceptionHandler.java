@@ -1,8 +1,9 @@
 package com.algangi.mongle.global.exception;
 
-import java.util.List;
-import java.util.Map;
-
+import com.algangi.mongle.auth.exception.BannedEmailException;
+import com.algangi.mongle.auth.exception.RateLimitExceededException;
+import com.algangi.mongle.global.dto.ApiResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,9 +13,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-import com.algangi.mongle.global.dto.ApiResponse;
-
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.Map;
 
 @RestControllerAdvice
 @Slf4j
@@ -28,15 +28,40 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(errorCode.getStatus())
             .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage(),
+
                 ErrorInfo.of(exception.getErrorInfo())));
+    }
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleRateLimitExceededException(
+        RateLimitExceededException exception) {
+
+        ErrorCode errorCode = exception.getErrorCode();
+
+        return ResponseEntity.status(errorCode.getStatus())
+
+            .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage()));
+    }
+
+    // 이메일 벤 예외 핸들러 추가
+    @ExceptionHandler(BannedEmailException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBannedEmailException(
+        BannedEmailException exception) {
+
+        ErrorCode errorCode = exception.getErrorCode();
+
+        return ResponseEntity.status(errorCode.getStatus())
+            .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<ErrorInfo>> handleIllegalArgumentException(
+
         IllegalArgumentException exception) {
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(ApiResponse.error(HttpStatus.BAD_REQUEST.getReasonPhrase(),
+
                 exception.getMessage()));
     }
 
@@ -45,22 +70,27 @@ public class GlobalExceptionHandler {
         PessimisticLockingFailureException exception) {
 
         return ResponseEntity.status(HttpStatus.LOCKED)
+
             .body(ApiResponse.error(HttpStatus.LOCKED.getReasonPhrase(),
                 exception.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<List<ErrorInfo>>> handleValidationException(
+
         MethodArgumentNotValidException exception) {
         List<ErrorInfo> errors = exception.getBindingResult().getFieldErrors().stream()
             .map(fieldError -> ErrorInfo.of(Map.of(
+
                 fieldError.getField(),
                 fieldError.getDefaultMessage() != null ? fieldError.getDefaultMessage()
+
                     : "유효하지 않은 값입니다."
             )))
             .toList();
 
         return ResponseEntity.badRequest()
+
             .body(ApiResponse.error("VALIDATION_FAILED", "요청 유효성 검사에 실패했습니다.", errors));
     }
 
@@ -75,7 +105,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ApiResponse<Void>> handleException(
         HttpRequestMethodNotSupportedException exception) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
             .body(ApiResponse.error("HTTP_METHOD_NOT_SUPPORTED", "지원하지 않는 HTTP 메소드입니다."));
     }
 }
