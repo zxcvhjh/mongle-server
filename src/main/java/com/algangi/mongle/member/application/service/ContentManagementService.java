@@ -3,14 +3,10 @@ package com.algangi.mongle.member.application.service;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
-
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-
-import com.algangi.mongle.comment.domain.model.Comment;
 import com.algangi.mongle.comment.domain.repository.CommentRepository;
-import com.algangi.mongle.post.domain.model.PostStatus;
 import com.algangi.mongle.post.domain.repository.PostRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -20,10 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class ContentManagementService {
-
-    private final CommentRepository commentRepository;
-    private final PostRepository postRepository;
-    private final ContentManagementDbService dbService;
+    
     private final RedisTemplate<String, String> redisTemplate;
 
     public void cleanupRedisDataForComments(List<String> commentIds,
