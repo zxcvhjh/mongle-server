@@ -8,6 +8,8 @@ import java.util.List;
 import com.algangi.mongle.comment.domain.model.Comment;
 import com.algangi.mongle.global.annotation.ULID;
 import com.algangi.mongle.global.entity.TimeBaseEntity;
+import com.algangi.mongle.post.exception.PostErrorCode;
+import com.algangi.mongle.global.exception.ApplicationException;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -18,6 +20,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,6 +34,8 @@ import lombok.NoArgsConstructor;
 @Builder(access = AccessLevel.PRIVATE)
 @Getter
 public class Post extends TimeBaseEntity {
+
+    private static final int REPORT_BLOCK_THRESHOLD = 5;
 
     @Id
     @ULID
@@ -61,12 +66,20 @@ public class Post extends TimeBaseEntity {
     @Builder.Default
     private long dislikeCount = 0;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private long reportCount = 0;
+
+    @Version
+    private Long version;
+
     @Builder.Default
     private Double rankingScore = 0.0;
 
     @Column(nullable = false)
     @Builder.Default
     private Instant expiredAt = Instant.now().plus(12, ChronoUnit.HOURS);
+
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     @Builder.Default
@@ -76,7 +89,7 @@ public class Post extends TimeBaseEntity {
     @Builder.Default
     private List<PostFile> postFiles = new ArrayList<>();
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String authorId;
 
     @Column(nullable = false)
@@ -193,7 +206,8 @@ public class Post extends TimeBaseEntity {
 
     public void softDeleteByUser() {
         if (this.status == PostStatus.DELETED_BY_USER
-            || this.status == PostStatus.DELETED_BY_ADMIN) {
+            || this.status == PostStatus.DELETED_BY_ADMIN
+            || this.status == PostStatus.BLOCKED_BY_REPORTS) {
             return;
         }
         this.status = PostStatus.DELETED_BY_USER;
@@ -201,12 +215,12 @@ public class Post extends TimeBaseEntity {
 
     public void softDeleteByAdmin() {
         if (this.status == PostStatus.DELETED_BY_USER
-            || this.status == PostStatus.DELETED_BY_ADMIN) {
+            || this.status == PostStatus.DELETED_BY_ADMIN
+            || this.status == PostStatus.BLOCKED_BY_REPORTS) {
             return;
         }
         this.status = PostStatus.DELETED_BY_ADMIN;
     }
-
 
     public void increaseLikeCount(long delta) {
         this.likeCount += delta;
@@ -219,6 +233,17 @@ public class Post extends TimeBaseEntity {
         this.dislikeCount += delta;
         if (this.dislikeCount < 0) {
             this.dislikeCount = 0;
+        }
+    }
+
+    public void incrementReportCountAndBlockIfNeeded() {
+        if (this.status != PostStatus.ACTIVE) {
+            throw new ApplicationException(PostErrorCode.POST_NOT_FOUND);
+        }
+
+        this.reportCount += 1;
+        if (this.reportCount >= REPORT_BLOCK_THRESHOLD) {
+            this.status = PostStatus.BLOCKED_BY_REPORTS;
         }
     }
 }
