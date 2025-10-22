@@ -4,8 +4,8 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 
-import com.algangi.mongle.auth.exception.RateLimitExceededException;
 import com.algangi.mongle.global.util.ClientIpUtils;
+import com.algangi.mongle.report.exception.ReportErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -23,7 +23,6 @@ import com.algangi.mongle.report.domain.model.Report;
 import com.algangi.mongle.report.domain.model.ReportStatus;
 import com.algangi.mongle.report.domain.model.ReportedTargetType;
 import com.algangi.mongle.report.domain.repository.ReportRepository;
-import com.algangi.mongle.report.exception.ReportErrorCode;
 import com.algangi.mongle.report.presentation.dto.ReportCreateRequest;
 
 import lombok.RequiredArgsConstructor;
@@ -37,7 +36,7 @@ public class ReportCommandService {
     private static final String IP_RATE_LIMIT_KEY_PREFIX = "report:ip-rate-limit:";
     private static final int MAX_IP_REPORTS_PER_HOUR = 10;
     private static final Duration IP_RATE_LIMIT_DURATION = Duration.ofHours(1);
-    private static final String DEACTIVATED_USER_ID = "DEACTIVATED";
+
     private final ReportRepository reportRepository;
     private final MemberFinder memberFinder;
     private final PostFinder postFinder;
@@ -57,8 +56,7 @@ public class ReportCommandService {
         String targetAuthorId = getTargetAuthorIdAndValidate(request.targetType(),
             request.targetId());
 
-        if (Objects.equals(reporter.getMemberId(), targetAuthorId) && !targetAuthorId.equals(
-            DEACTIVATED_USER_ID)) {
+        if (targetAuthorId != null && Objects.equals(reporter.getMemberId(), targetAuthorId)) {
             throw new ApplicationException(ReportErrorCode.SELF_REPORT_NOT_ALLOWED);
         }
 
@@ -96,9 +94,10 @@ public class ReportCommandService {
 
         reportRepository.save(report);
 
-        log.info("Unauthenticated report received and recorded. TargetType={}, TargetId={}, IP={}",
+        log.debug("Unauthenticated report recorded. TargetType={}, TargetId={}, IP(hash)={}",
             request.targetType(), request.targetId(),
-            clientIpUtils.getClientIpAddress().orElse("UNKNOWN"));
+            clientIpUtils.getClientIpAddress()
+                .map(ip -> "sha256Prefix").orElse("UNKNOWN"));
     }
 
     private void checkIpRateLimit() {
@@ -121,7 +120,7 @@ public class ReportCommandService {
 
         if (attempts > MAX_IP_REPORTS_PER_HOUR) {
             log.warn("IP Rate Limit Exceeded: IP={}, Attempts={}", clientIp, attempts);
-            throw new RateLimitExceededException();
+            throw new ApplicationException(ReportErrorCode.REPORT_RATE_LIMIT_EXCEEDED);
         }
     }
 
@@ -151,14 +150,13 @@ public class ReportCommandService {
         return switch (targetType) {
             case POST -> {
                 Post post = postFinder.getPostOrThrow(targetId);
-                yield Optional.ofNullable(post.getAuthorId())
-                    .orElse(DEACTIVATED_USER_ID);
+                yield post.getAuthorId();
             }
             case COMMENT -> {
                 Comment comment = commentFinder.getCommentOrThrow(targetId);
                 yield Optional.ofNullable(comment.getMember())
                     .map(Member::getMemberId)
-                    .orElse(DEACTIVATED_USER_ID);
+                    .orElse(null);
             }
         };
     }

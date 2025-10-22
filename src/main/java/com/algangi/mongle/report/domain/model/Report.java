@@ -48,7 +48,7 @@ public class Report extends CreatedDateBaseEntity {
     @Column(name = "target_type", nullable = false)
     private ReportedTargetType targetType;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String targetAuthorId;
 
     @Enumerated(EnumType.STRING)

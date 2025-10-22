@@ -16,6 +16,9 @@ DROP FOREIGN KEY FK1uivt2jamt7slp3banldgnsef;
 ALTER TABLE report
     MODIFY COLUMN reporter_id VARCHAR(255) NULL;
 
+ALTER TABLE report
+    MODIFY COLUMN target_author_id VARCHAR(255) NULL;
+
 -- nullable로 변경된 후, 기존 FK 제약조건과 동일한 이름으로 다시 추가합니다.
 ALTER TABLE report
     ADD CONSTRAINT FK1uivt2jamt7slp3banldgnsef FOREIGN KEY (reporter_id) REFERENCES member (member_id);
