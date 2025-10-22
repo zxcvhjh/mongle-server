@@ -29,70 +29,7 @@ public class ContentManagementService {
     private final ContentManagementDbService dbService;
     private final RedisTemplate<String, String> redisTemplate;
 
-    @Async("bannedUserContentTaskExecutor")
-    public void processCommentsOfBannedUser(String bannedMemberId) {
-        log.info("Starting async comment processing for banned user: {}", bannedMemberId);
-
-        // 1. 처리 대상 댓글 조회
-        List<Comment> commentsToProcess = findCommentsByBannedUser(bannedMemberId);
-        if (commentsToProcess.isEmpty()) {
-            log.info("No active comments to process for user: {}", bannedMemberId);
-            return;
-        }
-
-        // 2. 댓글 ID 추출
-        List<String> commentIds = commentsToProcess.stream()
-            .map(Comment::getId)
-            .toList();
-
-        // 3. <게시글 ID, 삭제될 댓글 개수>
-        Map<String, Long> postCommentCountDelta = commentsToProcess.stream()
-            .collect(Collectors.groupingBy(comment -> comment.getPost().getId(),
-                Collectors.counting()));
-
-        // 4. <게시글 ID, 삭제될 댓글 ID 목록>
-        Map<String, List<String>> commentsByPost = commentsToProcess.stream()
-            .collect(Collectors.groupingBy(
-                comment -> comment.getPost().getId(),
-                Collectors.mapping(Comment::getId, Collectors.toList())
-            ));
-
-        // 5. DB 업데이트
-        dbService.updateBannedUserCommentsInDb(commentIds, postCommentCountDelta);
-
-        // 6. Redis 업데이트
-        cleanupRedisDataForComments(commentIds, postCommentCountDelta, commentsByPost);
-        log.info("Finished async comment processing for banned user: {}", bannedMemberId);
-    }
-
-    @Async("bannedUserContentTaskExecutor")
-    public void processPostsOfBannedUser(String bannedMemberId) {
-        log.info("Starting async post processing for banned user: {}", bannedMemberId);
-
-        // 1. 처리 대상 게시글 조회
-        List<Post> postsToProcess = postRepository.findAllByAuthorIdAndStatusIn(
-            bannedMemberId, List.of(PostStatus.PENDING, PostStatus.ACTIVE)
-        );
-
-        if (postsToProcess.isEmpty()) {
-            log.info("No active posts to process for user: {}", bannedMemberId);
-            return;
-        }
-
-        // 2. 게시글 ID 추출
-        List<String> postIds = postsToProcess.stream()
-            .map(Post::getId)
-            .toList();
-
-        // 3. DB 업데이트
-        dbService.updateBannedUserPostsInDb(postIds);
-
-        // 4. Redis 데이터 정리
-        cleanupRedisDataForPosts(postIds);
-
-        log.info("Finished async post processing for banned user: {}", bannedMemberId);
-    }
-
+    // 신고 기능 개편으로 인해, 사용자 단위 제재 로직(ContentManagementService.processCommentsOfBannedUser, processPostsOfBannedUser)은 제거되었습니다.
 
     private List<Comment> findCommentsByBannedUser(String bannedMemberId) {
         return commentRepository.findAllByMemberIdAndPostStatusIn(
