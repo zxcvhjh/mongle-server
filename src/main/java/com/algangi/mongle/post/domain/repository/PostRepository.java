@@ -31,14 +31,6 @@ public interface PostRepository extends JpaRepository<Post, String> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @QueryHints({
         @QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000")
-    }
-    )
-    @Query(value = "select p from Post p where p.id = :postId")
-    Optional<Post> findByPostIdWithLock(@Param(value = "postId") String postId);
-
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @QueryHints({
-        @QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000")
     })
     @Query(value = "select p from Post p where p.id = :postId")
     Optional<Post> findByIdWithPessimisticLock(@Param(value = "postId") String postId);

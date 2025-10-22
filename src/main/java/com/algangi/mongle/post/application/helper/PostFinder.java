@@ -23,11 +23,6 @@ public class PostFinder {
             .orElseThrow(() -> new ApplicationException(PostErrorCode.POST_NOT_FOUND));
     }
 
-    public Post getPostWithLockOrThrow(String postId) {
-        return postRepository.findByPostIdWithLock(postId)
-            .orElseThrow(() -> new ApplicationException(PostErrorCode.POST_NOT_FOUND));
-    }
-    
     @Transactional(propagation = Propagation.MANDATORY)
     public Post getPostWithPessimisticLockOrThrow(String postId) {
         return postRepository.findByIdWithPessimisticLock(postId)

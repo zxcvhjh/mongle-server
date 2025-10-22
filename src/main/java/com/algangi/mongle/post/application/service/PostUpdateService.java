@@ -27,7 +27,7 @@ public class PostUpdateService {
     @Transactional
     public PostUpdateResponse updatePost(String postId, PostUpdateRequest request,
         String memberId) {
-        Post post = postFinder.getPostWithLockOrThrow(postId);
+        Post post = postFinder.getPostWithPessimisticLockOrThrow(postId);
         if (!post.getAuthorId().equals(memberId)) {
             throw new ApplicationException(AuthErrorCode.ACCESS_DENIED);
         }
