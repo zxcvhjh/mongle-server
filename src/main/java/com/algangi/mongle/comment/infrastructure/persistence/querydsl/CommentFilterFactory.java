@@ -36,7 +36,8 @@ public class CommentFilterFactory {
         return CommentCursorParser.parse(cursor, sort);
     }
 
-    public BooleanExpression notInBlockedMemberIds(List<String> blockedMemberIds, QComment qComment) {
+    public BooleanExpression notInBlockedMemberIds(List<String> blockedMemberIds,
+        QComment qComment) {
         if (blockedMemberIds == null || blockedMemberIds.isEmpty()) {
             return null;
         }
@@ -45,5 +46,15 @@ public class CommentFilterFactory {
 
     public BooleanExpression notDeletedByWithdrawal(QComment qComment) {
         return qComment.status.ne(CommentStatus.DELETED_BY_WITHDRAWAL);
+    }
+
+    public BooleanExpression notBlockedByReports(QComment qComment) {
+        return qComment.status.ne(CommentStatus.BLOCKED_BY_REPORTS);
+    }
+    
+    public BooleanExpression isActive(QComment qComment) {
+        return qComment.status.eq(CommentStatus.ACTIVE)
+            .and(notBlockedByReports(qComment))
+            .and(notDeletedByWithdrawal(qComment));
     }
 }
