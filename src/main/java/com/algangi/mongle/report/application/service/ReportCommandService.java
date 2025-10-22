@@ -26,6 +26,11 @@ import com.algangi.mongle.report.domain.repository.ReportRepository;
 import com.algangi.mongle.report.presentation.dto.ReportCreateRequest;
 
 import lombok.RequiredArgsConstructor;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
+
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +41,7 @@ public class ReportCommandService {
     private static final String IP_RATE_LIMIT_KEY_PREFIX = "report:ip-rate-limit:";
     private static final int MAX_IP_REPORTS_PER_HOUR = 10;
     private static final Duration IP_RATE_LIMIT_DURATION = Duration.ofHours(1);
+    private static final String HASH_ERROR_STRING = "HASH_ERROR";
 
     private final ReportRepository reportRepository;
     private final MemberFinder memberFinder;
@@ -97,7 +103,15 @@ public class ReportCommandService {
         log.debug("Unauthenticated report recorded. TargetType={}, TargetId={}, IP(hash)={}",
             request.targetType(), request.targetId(),
             clientIpUtils.getClientIpAddress()
-                .map(ip -> "sha256Prefix").orElse("UNKNOWN"));
+                .map(ip -> {
+                    try {
+                        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+                        byte[] hash = digest.digest(ip.getBytes(StandardCharsets.UTF_8));
+                        return HexFormat.of().formatHex(hash).substring(0, 16);
+                    } catch (NoSuchAlgorithmException e) {
+                        return HASH_ERROR_STRING;
+                    }
+                }).orElse("UNKNOWN"));
     }
 
     private void checkIpRateLimit() {

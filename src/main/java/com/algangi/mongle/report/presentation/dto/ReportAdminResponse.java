@@ -5,6 +5,7 @@ import com.algangi.mongle.report.domain.model.Report;
 import com.algangi.mongle.report.domain.model.ReportReason;
 import com.algangi.mongle.report.domain.model.ReportStatus;
 import com.algangi.mongle.report.domain.model.ReportedTargetType;
+import java.util.Optional;
 
 import java.time.Instant;
 
@@ -22,7 +23,8 @@ public record ReportAdminResponse(
     public static ReportAdminResponse from(Report report) {
         return new ReportAdminResponse(
             report.getId(),
-            ReporterInfo.from(report.getReporter()),
+            Optional.ofNullable(report.getReporter()).map(ReporterInfo::from)
+                .orElse(ReporterInfo.anonymous()),
             report.getTargetId(),
             report.getTargetType(),
             new TargetAuthorInfo(report.getTargetAuthorId()),
@@ -35,7 +37,14 @@ public record ReportAdminResponse(
     public record ReporterInfo(String memberId, String nickname) {
 
         public static ReporterInfo from(Member member) {
+            if (member == null) {
+                return anonymous();
+            }
             return new ReporterInfo(member.getMemberId(), member.getNickname());
+        }
+
+        public static ReporterInfo anonymous() {
+            return new ReporterInfo(null, "(비인증 사용자)");
         }
     }
 
