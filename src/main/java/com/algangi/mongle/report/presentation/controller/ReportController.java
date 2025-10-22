@@ -24,7 +24,13 @@ public class ReportController {
     public ResponseEntity<ApiResponse<Void>> createReport(
         @AuthenticationPrincipal CustomUserDetails userDetails,
         @Valid @RequestBody ReportCreateRequest request) {
-        reportCommandService.createReport(userDetails.userId(), request);
+        
+        String reporterId = (userDetails != null && userDetails.userId() != null
+            && !userDetails.userId().equals("anonymousUser"))
+            ? userDetails.userId()
+            : null;
+
+        reportCommandService.createReport(reporterId, request);
         return ResponseEntity.ok(ApiResponse.success());
     }
 }

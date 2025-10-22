@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true, propagation = Propagation.SUPPORTS)
@@ -19,7 +21,14 @@ public class CommentFinder {
     public Comment getCommentOrThrow(String commentId) {
         validateCommentId(commentId);
         return commentJpaRepository.findById(commentId)
-                .orElseThrow(() -> new ApplicationException(CommentErrorCode.COMMENT_NOT_FOUND));
+            .orElseThrow(() -> new ApplicationException(CommentErrorCode.COMMENT_NOT_FOUND));
+    }
+    
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Comment getCommentWithPessimisticLockOrThrow(String commentId) {
+        validateCommentId(commentId);
+        return commentJpaRepository.findByIdWithPessimisticLock(commentId)
+            .orElseThrow(() -> new ApplicationException(CommentErrorCode.COMMENT_NOT_FOUND));
     }
 
     private void validateCommentId(String commentId) {
@@ -27,5 +36,4 @@ public class CommentFinder {
             throw new ApplicationException(CommentErrorCode.COMMENT_NOT_FOUND);
         }
     }
-
 }

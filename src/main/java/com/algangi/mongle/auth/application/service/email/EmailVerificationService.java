@@ -1,7 +1,6 @@
 package com.algangi.mongle.auth.application.service.email;
 
 import com.algangi.mongle.auth.exception.AuthErrorCode;
-import com.algangi.mongle.auth.exception.RateLimitExceededException;
 import com.algangi.mongle.auth.presentation.dto.VerifyEmailRequest;
 import com.algangi.mongle.auth.presentation.dto.VerifyEmailResponse;
 import com.algangi.mongle.global.exception.ApplicationException;
@@ -52,7 +51,6 @@ public class EmailVerificationService {
             mailSender.send(
                 email,
                 "Mongle 회원가입 인증 코드입니다.",
-
                 "email-verification",
                 templateVariables
             );
@@ -85,7 +83,6 @@ public class EmailVerificationService {
 
         if (attempts == null) {
             throw new IllegalStateException(
-
                 "Redis increment operation failed for key: " + rateLimitKey);
         }
 
@@ -94,7 +91,7 @@ public class EmailVerificationService {
         }
 
         if (attempts > maxRequests) {
-            throw new RateLimitExceededException();
+            throw new ApplicationException(AuthErrorCode.VERIFICATION_CODE_TRY_EXCEEDED);
         }
     }
 

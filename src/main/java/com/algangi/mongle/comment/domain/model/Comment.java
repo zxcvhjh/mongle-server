@@ -32,6 +32,8 @@ import lombok.NoArgsConstructor;
 @Getter
 public class Comment extends TimeBaseEntity implements CursorConvertible {
 
+    private static final int REPORT_BLOCK_THRESHOLD = 5;
+
     @Id
     @Tsid
     @Column(nullable = false, updatable = false)
@@ -47,6 +49,10 @@ public class Comment extends TimeBaseEntity implements CursorConvertible {
     @Column(nullable = false)
     @Builder.Default
     private long dislikeCount = 0;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private long reportCount = 0;
 
     @Version
     private Long version;
@@ -72,7 +78,8 @@ public class Comment extends TimeBaseEntity implements CursorConvertible {
     @Builder.Default
     private CommentStatus status = CommentStatus.ACTIVE;
 
-    public static Comment createParentComment(String content, Post post, Member member, boolean isAnonymous) {
+    public static Comment createParentComment(String content, Post post, Member member,
+        boolean isAnonymous) {
         Comment comment = Comment.builder()
             .content(content)
             .post(post)
@@ -86,7 +93,8 @@ public class Comment extends TimeBaseEntity implements CursorConvertible {
         return comment;
     }
 
-    public static Comment createChildComment(String content, Comment parentComment, Member member, boolean isAnonymous) {
+    public static Comment createChildComment(String content, Comment parentComment, Member member,
+        boolean isAnonymous) {
         if (parentComment.isChildComment()) {
             throw new IllegalArgumentException("대댓글에 대댓글을 달 수 없습니다.");
         }
@@ -111,18 +119,19 @@ public class Comment extends TimeBaseEntity implements CursorConvertible {
     public boolean isDeleted() {
         return this.status == CommentStatus.DELETED_BY_USER
             || this.status == CommentStatus.DELETED_BY_ADMIN
-            || this.status == CommentStatus.DELETED_BY_WITHDRAWAL;
+            || this.status == CommentStatus.DELETED_BY_WITHDRAWAL
+            || this.status == CommentStatus.BLOCKED_BY_REPORTS;
     }
 
     public void softDeleteByUser() {
-        if (this.status != CommentStatus.ACTIVE) {
+        if (isDeleted()) {
             throw new ApplicationException(CommentErrorCode.ALREADY_DELETED);
         }
         this.status = CommentStatus.DELETED_BY_USER;
     }
 
     public void softDeleteByAdmin() {
-        if (this.status != CommentStatus.ACTIVE) {
+        if (isDeleted()) {
             throw new ApplicationException(CommentErrorCode.ALREADY_DELETED);
         }
         this.status = CommentStatus.DELETED_BY_ADMIN;
@@ -146,6 +155,17 @@ public class Comment extends TimeBaseEntity implements CursorConvertible {
 
     public void setPost(Post post) {
         this.post = post;
+    }
+
+    public void incrementReportCountAndBlockIfNeeded() {
+        if (this.status != CommentStatus.ACTIVE) {
+            throw new ApplicationException(CommentErrorCode.INVALID_STATUS);
+        }
+
+        this.reportCount += 1;
+        if (this.reportCount >= REPORT_BLOCK_THRESHOLD) {
+            this.status = CommentStatus.BLOCKED_BY_REPORTS;
+        }
     }
 
     @Override
