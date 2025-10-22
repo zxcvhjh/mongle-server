@@ -31,67 +31,67 @@ public class CommentQueryDslRepository implements CommentQueryRepository {
 
     @Override
     public PaginationResult<Comment> findCommentsByPost(
-            CommentSearchCondition condition, int size, List<String> blockedMemberIds) {
+        CommentSearchCondition condition, int size, List<String> blockedMemberIds) {
         List<Comment> comments = queryFactory
-                .selectFrom(comment)
-                .leftJoin(comment.member).fetchJoin()
-                .where(
-                        filterFactory.eqPostId(condition.postId()),
-                        filterFactory.isParentComment(),
-                        filterFactory.cursorCondition(condition.cursor(), condition.sort()),
-                        filterFactory.notInBlockedMemberIds(blockedMemberIds, comment),
-                        filterFactory.notDeletedByWithdrawal(comment)
-                )
-                .orderBy(orderFactory.createOrderSpecifiers(condition.sort()))
-                .limit(size + 1)
-                .fetch();
+            .selectFrom(comment)
+            .leftJoin(comment.member).fetchJoin()
+            .where(
+                filterFactory.isActive(comment),
+                filterFactory.eqPostId(condition.postId()),
+                filterFactory.isParentComment(),
+                filterFactory.cursorCondition(condition.cursor(), condition.sort()),
+                filterFactory.notInBlockedMemberIds(blockedMemberIds, comment)
+            )
+            .orderBy(orderFactory.createOrderSpecifiers(condition.sort()))
+            .limit(size + 1)
+            .fetch();
 
         return PaginationResult.of(comments, size);
     }
 
     @Override
     public PaginationResult<Comment> findRepliesByParent(
-            ReplySearchCondition condition, int size, List<String> blockedMemberIds) {
+        ReplySearchCondition condition, int size, List<String> blockedMemberIds) {
         List<Comment> replies = queryFactory
-                .selectFrom(comment)
-                .leftJoin(comment.member).fetchJoin()
-                .where(
-                        filterFactory.eqParentId(condition.parentId()),
-                        filterFactory.cursorCondition(condition.cursor(), condition.sort()),
-                        filterFactory.notInBlockedMemberIds(blockedMemberIds, comment),
-                        filterFactory.notDeletedByWithdrawal(comment)
-                )
-                .orderBy(orderFactory.createOrderSpecifiers(condition.sort()))
-                .limit(size + 1)
-                .fetch();
+            .selectFrom(comment)
+            .leftJoin(comment.member).fetchJoin()
+            .where(
+                filterFactory.isActive(comment),
+                filterFactory.eqParentId(condition.parentId()),
+                filterFactory.cursorCondition(condition.cursor(), condition.sort()),
+                filterFactory.notInBlockedMemberIds(blockedMemberIds, comment)
+            )
+            .orderBy(orderFactory.createOrderSpecifiers(condition.sort()))
+            .limit(size + 1)
+            .fetch();
 
         return PaginationResult.of(replies, size);
     }
 
     @Override
-    public Map<String, Boolean> findHasRepliesByParentIds(List<String> parentIds, List<String> blockedMemberIds) {
+    public Map<String, Boolean> findHasRepliesByParentIds(List<String> parentIds,
+        List<String> blockedMemberIds) {
         if (parentIds.isEmpty()) {
             return Collections.emptyMap();
         }
 
         QComment reply = new QComment("reply");
         List<String> parentIdsWithReplies = queryFactory
-                .select(reply.parentComment.id)
-                .from(reply)
-                .where(
-                        reply.parentComment.id.in(parentIds),
-                        filterFactory.notInBlockedMemberIds(blockedMemberIds, reply),
-                        filterFactory.notDeletedByWithdrawal(reply)
-                )
-                .groupBy(reply.parentComment.id)
-                .fetch();
+            .select(reply.parentComment.id)
+            .from(reply)
+            .where(
+                reply.parentComment.id.in(parentIds),
+                filterFactory.isActive(reply),
+                filterFactory.notInBlockedMemberIds(blockedMemberIds, reply)
+            )
+            .groupBy(reply.parentComment.id)
+            .fetch();
 
         Set<String> parentIdsWithRepliesSet = new HashSet<>(parentIdsWithReplies);
         return parentIds.stream()
-                .collect(Collectors.toMap(
-                        id -> id,
-                        parentIdsWithRepliesSet::contains
-                ));
+            .collect(Collectors.toMap(
+                id -> id,
+                parentIdsWithRepliesSet::contains
+            ));
     }
-
 }
