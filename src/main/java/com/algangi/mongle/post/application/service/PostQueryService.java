@@ -156,7 +156,7 @@ public class PostQueryService {
 
         if (isAnonymous) {
             authorDto = new PostDetailResponse.Author(
-                    null,
+                    author.getMemberId(),
                     "익명의 몽글러",
                     null
             );
@@ -284,7 +284,7 @@ public class PostQueryService {
 
         Post lastPost = content.get(content.size() - 1);
         String formattedDate = lastPost.getCreatedDate().toString();
-        PostSort finalSort = (sort == null) ? com.algangi.mongle.post.presentation.dto.PostSort.ranking_score : sort;
+        PostSort finalSort = (sort == null) ? PostSort.ranking_score : sort;
 
         if (finalSort == PostSort.ranking_score) {
             return String.join("_",

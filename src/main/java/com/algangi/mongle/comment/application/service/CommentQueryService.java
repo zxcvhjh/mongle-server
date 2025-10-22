@@ -13,7 +13,6 @@ import com.algangi.mongle.comment.presentation.cursor.CursorInfoResponse;
 import com.algangi.mongle.comment.domain.repository.CommentQueryRepository;
 import com.algangi.mongle.comment.domain.service.CommentFinder;
 import com.algangi.mongle.comment.presentation.mapper.CommentResponseMapper;
-import com.algangi.mongle.global.util.DateTimeUtil;
 import com.algangi.mongle.post.application.helper.PostFinder;
 import com.algangi.mongle.reaction.application.service.ReactionQueryService;
 import com.algangi.mongle.reaction.domain.model.ReactionType;
