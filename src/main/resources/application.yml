@@ -101,13 +101,20 @@ mongle:
       enabled: true
 
 # ===================================================
-# Actuator (헬스 체크) 설정
+# Actuator (헬스 체크 및 메트릭) 설정
 # ===================================================
 management:
   endpoints:
     web:
       base-path: /
       exposure:
-        include: health
+        include: health, prometheus
       path-mapping:
         health: health
+        prometheus: actuator/prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+  metrics:
+    tags:
+      application: mongle-app

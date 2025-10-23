@@ -92,7 +92,10 @@ dependencies {
     testImplementation("com.h2database:h2")
 
     // spring actuator
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-actuator") // 이미 있음
+
+    // Prometheus Micrometer Registry 추가
+    implementation("io.micrometer:micrometer-registry-prometheus") // <--- 이 줄 추가!
 
     // ULID
     implementation("com.github.f4b6a3:ulid-creator:5.2.0")
