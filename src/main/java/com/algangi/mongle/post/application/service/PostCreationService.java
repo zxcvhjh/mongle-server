@@ -38,6 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 public class PostCreationService {
 
     private static final int DYNAMIC_CLOUD_CREATION_THRESHOLD = 2;
+    private static final int MAX_POST_COUNT_PER_USER = 5;
     private final StaticCloudRepository staticCloudRepository;
     private final DynamicCloudRepository dynamicCloudRepository;
     private final PostRepository postRepository;
@@ -63,7 +64,7 @@ public class PostCreationService {
         // 회원당 게시물 최대 5개 유지
         long existingPostCount = postRepository.countByAuthorIdAndStatus(authorId,
             PostStatus.ACTIVE);
-        if (existingPostCount >= 5) {
+        if (existingPostCount >= MAX_POST_COUNT_PER_USER) {
             Optional<Post> oldestPost = postRepository.findFirstByAuthorIdAndStatusOrderByCreatedDateAsc(
                 authorId, PostStatus.ACTIVE);
             oldestPost.ifPresent(postRepository::delete);
@@ -109,6 +110,13 @@ public class PostCreationService {
         }
         Post savedPost = postRepository.save(createdPost);
         postRateLimiter.blockUser(authorId);
+
+        // TODO: 추후 개선 예정
+        savedPost.updateContent(savedPost.getContent() +
+            String.format("\n\n✅주의사항\n"
+                + "게시글은 유저당 최대 5개까지 생성가능합니다.\n"
+                + "5개를 초과하여 게시글을 작성하는 경우 가장 오래된 글이 자동 삭제됩니다.\n"
+                + "%s님의 게시물 수(%d/5)", author.getNickname(), existingPostCount));
 
         eventPublisher.publishEvent(
             new PostCreatedEvent(savedPost.getId(), request.fileKeyList()));
