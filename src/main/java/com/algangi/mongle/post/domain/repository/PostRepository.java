@@ -17,6 +17,7 @@ import com.algangi.mongle.post.domain.model.PostStatus;
 
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.QueryHint;
+import java.time.Instant;
 
 public interface PostRepository extends JpaRepository<Post, String> {
 
@@ -73,4 +74,8 @@ public interface PostRepository extends JpaRepository<Post, String> {
 
     Optional<Post> findFirstByAuthorIdAndStatusOrderByCreatedDateAsc(String authorId,
         PostStatus status);
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Post p SET p.status = 'EXPIRED' WHERE p.expiredAt <= :now AND p.status = 'ACTIVE'")
+    int expirePosts(@Param("now") Instant now);
 }
