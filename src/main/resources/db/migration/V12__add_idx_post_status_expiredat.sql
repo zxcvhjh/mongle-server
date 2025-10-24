@@ -1,0 +1,1 @@
+CREATE INDEX idx_post_status_expiredat ON post (status, expired_at);
