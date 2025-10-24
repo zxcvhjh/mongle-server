@@ -14,7 +14,7 @@ public class StatsSyncScheduler {
 
     private final StatsSyncService statsSyncService;
 
-    @Scheduled(cron = "0 */10 * * * *")
+    // @Scheduled(cron = "0 */10 * * * *")
     @SchedulerLock(name = "runScheduledStatsSync", lockAtLeastFor = "PT5M", lockAtMostFor = "PT15M")
     public void runScheduledStatsSync() {
         log.info("ShedLock으로 보호된 통계 동기화 작업을 시작합니다.");
