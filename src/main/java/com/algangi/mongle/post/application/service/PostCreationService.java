@@ -67,7 +67,7 @@ public class PostCreationService {
         if (existingPostCount >= MAX_POST_COUNT_PER_USER) {
             Optional<Post> oldestPost = postRepository.findFirstByAuthorIdAndStatusOrderByCreatedDateAsc(
                 authorId, PostStatus.ACTIVE);
-            oldestPost.ifPresent(postRepository::delete);
+            oldestPost.ifPresent(Post::softDeleteByAdmin);
         }
 
         boolean isAnonymous = request.isAnonymous() != null && request.isAnonymous();
