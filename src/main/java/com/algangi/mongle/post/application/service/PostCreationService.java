@@ -122,7 +122,8 @@ public class PostCreationService {
         long currentPostCount =
             existingPostCount + 1 <= MAX_POST_COUNT_PER_USER ? existingPostCount + 1
                 : MAX_POST_COUNT_PER_USER;
-        String content = String.format("게시글 수 (%d/%d)", currentPostCount, MAX_POST_COUNT_PER_USER);
+        String content = String.format("게시글 수 (%d/%d)\n24시간 후 자동 삭제", currentPostCount,
+            MAX_POST_COUNT_PER_USER);
         Comment noifyComment = Comment.createParentComment(content, savedPost, admin,
             isAnonymous);
         commentRepository.save(noifyComment);
