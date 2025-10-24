@@ -34,7 +34,7 @@ import lombok.RequiredArgsConstructor;
 @EnableWebSecurity
 @EnableMethodSecurity
 @RequiredArgsConstructor
-@Profile({"prod", "local"})
+@Profile({"prod", "local"}) // "test" 프로파일 제외 확인
 public class SecurityConfig {
 
     private final TokenValidationFilter tokenValidationFilter;
@@ -62,6 +62,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/comments/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/map/**").permitAll()
                 .requestMatchers("/health").permitAll()
+                .requestMatchers("/actuator/prometheus").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(tokenValidationFilter, LogoutFilter.class)
