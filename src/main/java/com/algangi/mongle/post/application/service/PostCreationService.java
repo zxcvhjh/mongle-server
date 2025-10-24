@@ -14,7 +14,6 @@ import com.algangi.mongle.global.domain.service.CellService;
 import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.member.application.service.MemberFinder;
 import com.algangi.mongle.member.domain.model.Member;
-import com.algangi.mongle.member.domain.model.MemberRole;
 import com.algangi.mongle.member.domain.model.MemberStatus;
 import com.algangi.mongle.member.exception.MemberErrorCode;
 import com.algangi.mongle.post.application.dto.PostCreationCommand;
@@ -57,7 +56,7 @@ public class PostCreationService {
         requireActive(author);
 
         // 관리자가 아닌 경우에만 3분 글쓰기 제한 적용
-        if (author.getMemberRole() != MemberRole.ADMIN) {
+        if (!author.isAdmin()) {
             postRateLimiter.checkRateLimit(authorId);
         }
 
@@ -109,7 +108,9 @@ public class PostCreationService {
             createdPost = handleNewPost(command, finalS2TokenId);
         }
         Post savedPost = postRepository.save(createdPost);
-        postRateLimiter.blockUser(authorId);
+        if (!author.isAdmin()) {
+            postRateLimiter.blockUser(authorId);
+        }
 
         // TODO: 추후 개선 예정
         savedPost.updateContent(savedPost.getContent() +
