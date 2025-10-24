@@ -34,11 +34,11 @@ import com.algangi.mongle.post.domain.model.PostStatus;
 import com.algangi.mongle.post.exception.PostErrorCode;
 
 @ExtendWith(MockitoExtension.class)
-class PostFileCreatedEventListenerTest {
+class PostCreatedEventListenerTest {
 
     private static final String POST_ID = "test-post-id";
     @InjectMocks
-    private PostFileCreatedEventListener postFileCreatedEventListener;
+    private PostCreatedEventListener postCreatedEventListener;
     @Mock
     private FileService fileService;
     @Mock
@@ -64,10 +64,10 @@ class PostFileCreatedEventListenerTest {
         void handleFileCommit_WithFiles_CommitsFilesAndMarksPostAsActive() {
             // given
             List<String> fileKeys = List.of("posts/key1.jpg", "posts/key2.png");
-            PostFileCreatedEvent event = new PostFileCreatedEvent(POST_ID, fileKeys);
+            PostCreatedEvent event = new PostCreatedEvent(POST_ID, fileKeys);
 
             // when
-            postFileCreatedEventListener.handleFileCommit(event);
+            postCreatedEventListener.handleFileCommit(event);
 
             // then
             ArgumentCaptor<List<PostFile>> postFilesCaptor = ArgumentCaptor.forClass(List.class);
@@ -80,7 +80,7 @@ class PostFileCreatedEventListenerTest {
                 // 3. Post가 Active 상태로 변경되었는지 검증
                 () -> verify(post, times(1)).markAsActive()
             );
-            
+
             List<PostFile> capturedFiles = postFilesCaptor.getValue();
             assertThat(capturedFiles).hasSize(2);
             assertThat(capturedFiles.get(0).getFileKey()).isEqualTo("posts/key1.jpg");
@@ -93,10 +93,10 @@ class PostFileCreatedEventListenerTest {
         void handleFileCommit_WithoutFiles_MarksPostAsActive() {
             // given
             List<String> emptyFileKeys = List.of();
-            PostFileCreatedEvent event = new PostFileCreatedEvent(POST_ID, emptyFileKeys);
+            PostCreatedEvent event = new PostCreatedEvent(POST_ID, emptyFileKeys);
 
             // when
-            postFileCreatedEventListener.handleFileCommit(event);
+            postCreatedEventListener.handleFileCommit(event);
 
             // then
             assertAll(
@@ -120,14 +120,14 @@ class PostFileCreatedEventListenerTest {
         void handleFileCommit_WhenTaggingFails_ThrowsExceptionAndDoesNotChangeStatus() {
             // given
             List<String> fileKeys = List.of("posts/key1.jpg");
-            PostFileCreatedEvent event = new PostFileCreatedEvent(POST_ID, fileKeys);
+            PostCreatedEvent event = new PostCreatedEvent(POST_ID, fileKeys);
 
             doThrow(new ApplicationException(AwsErrorCode.S3_FILE_TAGGING_FAILED))
                 .when(fileService).commitFiles(fileKeys);
 
             // when & then
             ApplicationException exception = assertThrows(ApplicationException.class, () -> {
-                postFileCreatedEventListener.handleFileCommit(event);
+                postCreatedEventListener.handleFileCommit(event);
             });
 
             assertEquals(AwsErrorCode.S3_FILE_TAGGING_FAILED, exception.getErrorCode());
@@ -140,14 +140,14 @@ class PostFileCreatedEventListenerTest {
         @DisplayName("Post를 찾을 수 없을 경우 예외를 던지고 파일 관련 작업을 수행하지 않음")
         void handleFileCommit_WhenPostNotFound_ThrowsException() {
             // given
-            PostFileCreatedEvent event = new PostFileCreatedEvent(POST_ID,
+            PostCreatedEvent event = new PostCreatedEvent(POST_ID,
                 List.of("posts/key1.jpg"));
             doThrow(new ApplicationException(PostErrorCode.POST_NOT_FOUND)).when(postFinder)
                 .getPostOrThrow(POST_ID);
 
             // when & then
             assertThrows(ApplicationException.class, () -> {
-                postFileCreatedEventListener.handleFileCommit(event);
+                postCreatedEventListener.handleFileCommit(event);
             });
 
             verify(fileService, never()).commitFiles(any());

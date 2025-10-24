@@ -23,7 +23,7 @@ import com.algangi.mongle.post.domain.model.Post;
 import com.algangi.mongle.post.domain.model.PostStatus;
 import com.algangi.mongle.post.domain.repository.PostRepository;
 import com.algangi.mongle.post.domain.service.LocationRandomizer;
-import com.algangi.mongle.post.event.PostFileCreatedEvent;
+import com.algangi.mongle.post.event.PostCreatedEvent;
 import com.algangi.mongle.post.presentation.dto.PostCreateRequest;
 import com.algangi.mongle.post.presentation.dto.PostCreateResponse;
 import com.algangi.mongle.staticCloud.domain.model.StaticCloud;
@@ -111,7 +111,7 @@ public class PostCreationService {
         postRateLimiter.blockUser(authorId);
 
         eventPublisher.publishEvent(
-            new PostFileCreatedEvent(savedPost.getId(), request.fileKeyList()));
+            new PostCreatedEvent(savedPost.getId(), request.fileKeyList()));
         return PostCreateResponse.from(savedPost);
     }
 

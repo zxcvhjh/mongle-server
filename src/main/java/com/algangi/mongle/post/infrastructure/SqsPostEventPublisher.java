@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 
 import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.global.exception.AwsErrorCode;
-import com.algangi.mongle.post.event.PostFileUpdatedEvent;
+import com.algangi.mongle.post.event.PostUpdatedEvent;
 
 import io.awspring.cloud.sqs.operations.SqsTemplate;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +21,7 @@ public class SqsPostEventPublisher {
     @Value("${mongle.aws.sqs.post-file-update-queue-name}")
     private String queueName;
 
-    public void publish(PostFileUpdatedEvent event) {
+    public void publish(PostUpdatedEvent event) {
         log.info("Transaction committed. Sending event to SQS for postId: {}", event.postId());
         try {
             sqsTemplate.send(to -> to.queue(queueName).payload(event));

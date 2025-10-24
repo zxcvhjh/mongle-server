@@ -20,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class PostFileUpdatedEventListener {
+public class PostUpdatedEventListener {
 
     private final FileService fileService;
     private final PostFinder postFinder;
@@ -28,7 +28,7 @@ public class PostFileUpdatedEventListener {
     @Async("fileTaskExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void handleFileUpdatedEvent(PostFileUpdatedEvent event) {
+    public void handleFileUpdatedEvent(PostUpdatedEvent event) {
         log.info("Receiving SQS message for post: {}", event.postId());
         try {
             List<String> keysToAdd = event.finalFileKeys().stream()
