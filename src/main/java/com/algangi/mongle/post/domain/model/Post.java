@@ -1,15 +1,13 @@
 package com.algangi.mongle.post.domain.model;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.algangi.mongle.comment.domain.model.Comment;
 import com.algangi.mongle.global.annotation.ULID;
 import com.algangi.mongle.global.entity.TimeBaseEntity;
-import com.algangi.mongle.post.exception.PostErrorCode;
 import com.algangi.mongle.global.exception.ApplicationException;
+import com.algangi.mongle.post.exception.PostErrorCode;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -21,6 +19,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -78,7 +78,7 @@ public class Post extends TimeBaseEntity {
 
     @Column(nullable = false)
     @Builder.Default
-    private Instant expiredAt = Instant.now().plus(12, ChronoUnit.HOURS);
+    private Instant expiredAt = Instant.now().plus(24, ChronoUnit.HOURS);
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
@@ -198,6 +198,10 @@ public class Post extends TimeBaseEntity {
 
     public void markAsActive() {
         this.status = PostStatus.ACTIVE;
+    }
+
+    public void markAsExpired() {
+        this.status = PostStatus.EXPIRED;
     }
 
     public void markAsPending() {
