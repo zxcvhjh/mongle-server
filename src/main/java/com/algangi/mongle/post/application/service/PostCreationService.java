@@ -7,6 +7,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.algangi.mongle.comment.domain.model.Comment;
+import com.algangi.mongle.comment.domain.repository.CommentRepository;
 import com.algangi.mongle.dynamicCloud.domain.model.DynamicCloud;
 import com.algangi.mongle.dynamicCloud.domain.repository.DynamicCloudRepository;
 import com.algangi.mongle.dynamicCloud.domain.service.DynamicCloudFormationService;
@@ -15,6 +17,7 @@ import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.member.application.service.MemberFinder;
 import com.algangi.mongle.member.domain.model.Member;
 import com.algangi.mongle.member.domain.model.MemberStatus;
+import com.algangi.mongle.member.domain.repository.MemberRepository;
 import com.algangi.mongle.member.exception.MemberErrorCode;
 import com.algangi.mongle.post.application.dto.PostCreationCommand;
 import com.algangi.mongle.post.domain.model.Location;
@@ -47,6 +50,8 @@ public class PostCreationService {
     private final LocationRandomizer locationRandomizer;
     private final CellService cellService;
     private final PostRateLimiter postRateLimiter;
+    private final CommentRepository commentRepository;
+    private final MemberRepository memberRepository;
 
     @Transactional
     public PostCreateResponse createPost(PostCreateRequest request, String authorId) {
@@ -112,12 +117,15 @@ public class PostCreationService {
             postRateLimiter.blockUser(authorId);
         }
 
-        // TODO: 추후 개선 예정
-        savedPost.updateContent(savedPost.getContent() +
-            String.format("\n\n✅주의사항\n"
-                + "게시글은 유저당 최대 5개까지 생성가능합니다.\n"
-                + "5개를 초과하여 게시글을 작성하는 경우 가장 오래된 글이 자동 삭제됩니다.\n"
-                + "%s님의 게시물 수(%d/5)", author.getNickname(), existingPostCount));
+        // TODO: 추후 변경 예정
+        Member admin = memberFinder.getMemberOrThrow("admin_01");
+        long currentPostCount =
+            existingPostCount + 1 <= MAX_POST_COUNT_PER_USER ? existingPostCount + 1
+                : MAX_POST_COUNT_PER_USER;
+        String content = String.format("게시글 수 (%d/%d)", currentPostCount, MAX_POST_COUNT_PER_USER);
+        Comment noifyComment = Comment.createParentComment(content, savedPost, admin,
+            isAnonymous);
+        commentRepository.save(noifyComment);
 
         eventPublisher.publishEvent(
             new PostCreatedEvent(savedPost.getId(), request.fileKeyList()));
