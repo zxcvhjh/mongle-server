@@ -19,11 +19,13 @@ public class PostRateLimiter {
 
     public void checkRateLimit(String userId) {
         String key = RATE_LIMIT_KEY_PREFIX + userId;
-        Boolean isSuccess = redisTemplate.opsForValue()
-            .setIfAbsent(key, "blocked", BLOCK_DURATION);
-
-        if (Boolean.FALSE.equals(isSuccess)) {
+        if (redisTemplate.hasKey(key)) {
             throw new ApplicationException(PostErrorCode.POST_RATE_LIMIT_EXCEEDED);
         }
+    }
+
+    public void blockUser(String userId) {
+        String key = RATE_LIMIT_KEY_PREFIX + userId;
+        redisTemplate.opsForValue().set(key, "blocked", BLOCK_DURATION);
     }
 }

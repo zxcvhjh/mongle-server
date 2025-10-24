@@ -108,6 +108,7 @@ public class PostCreationService {
             createdPost = handleNewPost(command, finalS2TokenId);
         }
         Post savedPost = postRepository.save(createdPost);
+        postRateLimiter.blockUser(authorId);
 
         eventPublisher.publishEvent(
             new PostFileCreatedEvent(savedPost.getId(), request.fileKeyList()));
