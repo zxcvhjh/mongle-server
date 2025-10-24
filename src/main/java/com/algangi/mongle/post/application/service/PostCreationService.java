@@ -24,7 +24,6 @@ import com.algangi.mongle.post.domain.model.PostStatus;
 import com.algangi.mongle.post.domain.repository.PostRepository;
 import com.algangi.mongle.post.domain.service.LocationRandomizer;
 import com.algangi.mongle.post.event.PostFileCreatedEvent;
-import com.algangi.mongle.post.exception.PostErrorCode;
 import com.algangi.mongle.post.presentation.dto.PostCreateRequest;
 import com.algangi.mongle.post.presentation.dto.PostCreateResponse;
 import com.algangi.mongle.staticCloud.domain.model.StaticCloud;
@@ -85,12 +84,6 @@ public class PostCreationService {
 
         String finalS2TokenId = cellService.generateS2TokenIdFrom(finalLocation.getLatitude(),
             finalLocation.getLongitude());
-
-        //한 셀 당 하나의 게시물 생성 가능 (애플리케이션단 검증)
-        if (postRepository.existsByAuthorIdAndS2TokenIdAndStatus(authorId, finalS2TokenId,
-            PostStatus.ACTIVE)) {
-            throw new ApplicationException(PostErrorCode.DUPLICATE_POST_IN_CELL);
-        }
 
         PostCreationCommand command = PostCreationCommand.of(
             finalLocation,

@@ -73,7 +73,4 @@ public interface PostRepository extends JpaRepository<Post, String> {
 
     Optional<Post> findFirstByAuthorIdAndStatusOrderByCreatedDateAsc(String authorId,
         PostStatus status);
-
-    boolean existsByAuthorIdAndS2TokenIdAndStatus(String authorId, String s2TokenId,
-        PostStatus status);
 }
