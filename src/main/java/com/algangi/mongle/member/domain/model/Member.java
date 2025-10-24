@@ -115,4 +115,8 @@ public class Member extends TimeBaseEntity {
     public void updateProfileImage(String profileImageKey) {
         this.profileImage = profileImageKey;
     }
+
+    public boolean isAdmin() {
+        return this.memberRole == MemberRole.ADMIN;
+    }
 }

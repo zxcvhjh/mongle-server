@@ -30,6 +30,14 @@ public class Location {
         if (latitude == null || longitude == null) {
             throw new IllegalArgumentException("위도와 경도는 null일 수 없습니다.");
         }
+        if (latitude < -90.0 || latitude > 90.0) {
+            throw new IllegalArgumentException(
+                "위도는 -90 이상 90 이하의 값이어야 합니다. (입력값: " + latitude + ")");
+        }
+        if (longitude < -180.0 || longitude > 180.0) {
+            throw new IllegalArgumentException(
+                "경도는 -180 이상 180 이하의 값이어야 합니다. (입력값: " + longitude + ")");
+        }
     }
 
     @Override

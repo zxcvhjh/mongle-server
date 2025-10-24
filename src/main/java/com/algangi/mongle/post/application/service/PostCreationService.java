@@ -1,6 +1,5 @@
 package com.algangi.mongle.post.application.service;
 
-import com.algangi.mongle.member.domain.model.MemberRole;
 import java.util.List;
 import java.util.Optional;
 
@@ -8,6 +7,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.algangi.mongle.comment.domain.model.Comment;
+import com.algangi.mongle.comment.domain.repository.CommentRepository;
 import com.algangi.mongle.dynamicCloud.domain.model.DynamicCloud;
 import com.algangi.mongle.dynamicCloud.domain.repository.DynamicCloudRepository;
 import com.algangi.mongle.dynamicCloud.domain.service.DynamicCloudFormationService;
@@ -16,6 +17,7 @@ import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.member.application.service.MemberFinder;
 import com.algangi.mongle.member.domain.model.Member;
 import com.algangi.mongle.member.domain.model.MemberStatus;
+import com.algangi.mongle.member.domain.repository.MemberRepository;
 import com.algangi.mongle.member.exception.MemberErrorCode;
 import com.algangi.mongle.post.application.dto.PostCreationCommand;
 import com.algangi.mongle.post.domain.model.Location;
@@ -23,8 +25,7 @@ import com.algangi.mongle.post.domain.model.Post;
 import com.algangi.mongle.post.domain.model.PostStatus;
 import com.algangi.mongle.post.domain.repository.PostRepository;
 import com.algangi.mongle.post.domain.service.LocationRandomizer;
-import com.algangi.mongle.post.event.PostFileCreatedEvent;
-import com.algangi.mongle.post.exception.PostErrorCode;
+import com.algangi.mongle.post.event.PostCreatedEvent;
 import com.algangi.mongle.post.presentation.dto.PostCreateRequest;
 import com.algangi.mongle.post.presentation.dto.PostCreateResponse;
 import com.algangi.mongle.staticCloud.domain.model.StaticCloud;
@@ -39,6 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 public class PostCreationService {
 
     private static final int DYNAMIC_CLOUD_CREATION_THRESHOLD = 2;
+    private static final int MAX_POST_COUNT_PER_USER = 5;
     private final StaticCloudRepository staticCloudRepository;
     private final DynamicCloudRepository dynamicCloudRepository;
     private final PostRepository postRepository;
@@ -48,6 +50,8 @@ public class PostCreationService {
     private final LocationRandomizer locationRandomizer;
     private final CellService cellService;
     private final PostRateLimiter postRateLimiter;
+    private final CommentRepository commentRepository;
+    private final MemberRepository memberRepository;
 
     @Transactional
     public PostCreateResponse createPost(PostCreateRequest request, String authorId) {
@@ -57,16 +61,17 @@ public class PostCreationService {
         requireActive(author);
 
         // 관리자가 아닌 경우에만 3분 글쓰기 제한 적용
-        if (author.getMemberRole() != MemberRole.ADMIN) {
+        if (!author.isAdmin()) {
             postRateLimiter.checkRateLimit(authorId);
         }
 
         // 회원당 게시물 최대 5개 유지
         long existingPostCount = postRepository.countByAuthorIdAndStatus(authorId,
             PostStatus.ACTIVE);
-        if (existingPostCount >= 5) {
-            Optional<Post> oldestPost = postRepository.findOldestPost(authorId, PostStatus.ACTIVE);
-            oldestPost.ifPresent(postRepository::delete);
+        if (existingPostCount >= MAX_POST_COUNT_PER_USER) {
+            Optional<Post> oldestPost = postRepository.findFirstByAuthorIdAndStatusOrderByCreatedDateAsc(
+                authorId, PostStatus.ACTIVE);
+            oldestPost.ifPresent(Post::softDeleteByAdmin);
         }
 
         boolean isAnonymous = request.isAnonymous() != null && request.isAnonymous();
@@ -84,12 +89,6 @@ public class PostCreationService {
 
         String finalS2TokenId = cellService.generateS2TokenIdFrom(finalLocation.getLatitude(),
             finalLocation.getLongitude());
-
-        //한 셀 당 하나의 게시물 생성 가능 (애플리케이션단 검증)
-        if (postRepository.existsByAuthorIdAndS2TokenIdAndStatus(authorId, finalS2TokenId,
-            PostStatus.ACTIVE)) {
-            throw new ApplicationException(PostErrorCode.DUPLICATE_POST_IN_CELL);
-        }
 
         PostCreationCommand command = PostCreationCommand.of(
             finalLocation,
@@ -114,9 +113,22 @@ public class PostCreationService {
             createdPost = handleNewPost(command, finalS2TokenId);
         }
         Post savedPost = postRepository.save(createdPost);
+        if (!author.isAdmin()) {
+            postRateLimiter.blockUser(authorId);
+        }
+
+        // TODO: 추후 변경 예정
+        Member admin = memberFinder.getMemberOrThrow("admin_01");
+        long currentPostCount =
+            existingPostCount + 1 <= MAX_POST_COUNT_PER_USER ? existingPostCount + 1
+                : MAX_POST_COUNT_PER_USER;
+        String content = String.format("게시글 수 (%d/%d)", currentPostCount, MAX_POST_COUNT_PER_USER);
+        Comment noifyComment = Comment.createParentComment(content, savedPost, admin,
+            isAnonymous);
+        commentRepository.save(noifyComment);
 
         eventPublisher.publishEvent(
-            new PostFileCreatedEvent(savedPost.getId(), request.fileKeyList()));
+            new PostCreatedEvent(savedPost.getId(), request.fileKeyList()));
         return PostCreateResponse.from(savedPost);
     }
 

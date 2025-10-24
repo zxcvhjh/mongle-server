@@ -22,7 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class PostFileCreatedEventListener {
+public class PostCreatedEventListener {
 
     private final FileService fileService;
     private final PostFinder postFinder;
@@ -30,7 +30,7 @@ public class PostFileCreatedEventListener {
     @Async("fileTaskExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void handleFileCommit(PostFileCreatedEvent event) {
+    public void handleFileCommit(PostCreatedEvent event) {
         log.info("게시물 파일 커밋/활성화 작업 시작: PostId={}", event.postId());
         try {
             Post post = postFinder.getPostOrThrow(event.postId());

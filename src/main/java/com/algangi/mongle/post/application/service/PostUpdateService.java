@@ -11,7 +11,7 @@ import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.post.application.helper.PostFinder;
 import com.algangi.mongle.post.domain.model.Post;
 import com.algangi.mongle.post.domain.model.PostFile;
-import com.algangi.mongle.post.event.PostFileUpdatedEvent;
+import com.algangi.mongle.post.event.PostUpdatedEvent;
 import com.algangi.mongle.post.presentation.dto.PostUpdateRequest;
 import com.algangi.mongle.post.presentation.dto.PostUpdateResponse;
 
@@ -41,7 +41,7 @@ public class PostUpdateService {
         post.updateContent(request.content());
         post.updateAnonymity(request.isAnonymous());
 
-        PostFileUpdatedEvent event = new PostFileUpdatedEvent(postId, previousFileKeys,
+        PostUpdatedEvent event = new PostUpdatedEvent(postId, previousFileKeys,
             finalFileKeys);
         eventPublisher.publishEvent(event);
 
