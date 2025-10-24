@@ -1,6 +1,5 @@
 package com.algangi.mongle.post.application.service;
 
-import com.algangi.mongle.member.domain.model.MemberRole;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,6 +14,7 @@ import com.algangi.mongle.global.domain.service.CellService;
 import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.member.application.service.MemberFinder;
 import com.algangi.mongle.member.domain.model.Member;
+import com.algangi.mongle.member.domain.model.MemberRole;
 import com.algangi.mongle.member.domain.model.MemberStatus;
 import com.algangi.mongle.member.exception.MemberErrorCode;
 import com.algangi.mongle.post.application.dto.PostCreationCommand;
@@ -65,7 +65,8 @@ public class PostCreationService {
         long existingPostCount = postRepository.countByAuthorIdAndStatus(authorId,
             PostStatus.ACTIVE);
         if (existingPostCount >= 5) {
-            Optional<Post> oldestPost = postRepository.findOldestPost(authorId, PostStatus.ACTIVE);
+            Optional<Post> oldestPost = postRepository.findFirstByAuthorIdAndStatusOrderByCreatedDateAsc(
+                authorId, PostStatus.ACTIVE);
             oldestPost.ifPresent(postRepository::delete);
         }
 
