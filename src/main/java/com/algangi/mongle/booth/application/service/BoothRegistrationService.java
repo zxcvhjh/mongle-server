@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.algangi.mongle.booth.presentation.dto.BoothRegistrationRequest;
 import com.algangi.mongle.booth.presentation.dto.BoothRegistrationResponse;
+import com.algangi.mongle.member.application.service.MemberFinder;
 import com.algangi.mongle.member.domain.model.Member;
 import com.algangi.mongle.member.domain.repository.MemberRepository;
 
@@ -17,6 +18,7 @@ public class BoothRegistrationService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final MemberFinder memberFinder;
 
     private static String generateBoothEmail(String boothName) {
         return String.format("booth_%s@mongle.com", boothName);
@@ -32,6 +34,10 @@ public class BoothRegistrationService {
         String boothId = generateBoothId(boothName);
         String boothEmail = generateBoothEmail(request.boothName());
         String encodedPassword = passwordEncoder.encode(request.password());
+
+        memberFinder.validateDuplicateEmail(boothEmail);
+        memberFinder.validateDuplicateNickName(boothName);
+
         Member boothAccount = Member.createUserWithId(boothId, boothEmail, encodedPassword,
             boothName,
             null);
