@@ -8,14 +8,15 @@ public record MapObjectsResponse(
     List<StaticCloudInfo> staticClouds,
     List<DynamicCloudInfo> dynamicClouds
 ) {
-    
+
     public record Grain(
         String postId,
         double latitude,
         double longitude,
         Author author,
         boolean isViewed,
-        boolean isRecent
+        boolean isRecent,
+        String infoText
     ) {
 
 
