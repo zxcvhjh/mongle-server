@@ -16,7 +16,9 @@ public enum PostErrorCode implements ErrorCode {
     POST_ACCESS_DENIED(HttpStatus.FORBIDDEN, "POST-003", "게시글에 대한 권한이 없습니다."),
     POST_RATE_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "POST-004", "게시글 생성 속도 제한을 초과했습니다."),
     INVALID_STATUS(HttpStatus.BAD_REQUEST, "POST-006",
-        "게시글이 신고 불가능한 상태입니다.");
+        "게시글이 신고 불가능한 상태입니다."),
+    BOOTH_POST_MAXIMUM_EXCEED(HttpStatus.BAD_REQUEST, "POST-007",
+        "부스 게시글은 최대 1개만 생성할 수 있습니다.\n 게시글 수정 또는 삭제후 재생성해주세요.");
 
     private final HttpStatus status;
     private final String code;

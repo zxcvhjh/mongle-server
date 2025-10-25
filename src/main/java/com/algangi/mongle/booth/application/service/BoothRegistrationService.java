@@ -38,7 +38,7 @@ public class BoothRegistrationService {
         memberFinder.validateDuplicateEmail(boothEmail);
         memberFinder.validateDuplicateNickName(boothName);
 
-        Member boothAccount = Member.createUserWithId(boothId, boothEmail, encodedPassword,
+        Member boothAccount = Member.createBoothAccount(boothId, boothEmail, encodedPassword,
             boothName,
             null);
         Member savedBooth = memberRepository.save(boothAccount);

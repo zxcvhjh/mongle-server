@@ -156,6 +156,23 @@ public class Post extends TimeBaseEntity {
             .build();
     }
 
+    public static Post createNonExpiredStandalone(
+        Location location,
+        String s2TokenId,
+        String content,
+        String authorId,
+        boolean isAnonymous
+    ) {
+        return Post.builder()
+            .location(location)
+            .s2TokenId(s2TokenId)
+            .content(content)
+            .authorId(authorId)
+            .isAnonymous(isAnonymous)
+            .expiredAt(null)
+            .build();
+    }
+
     public void assignToDynamicCloud(Long dynamicCloudId) {
         this.dynamicCloudId = dynamicCloudId;
         this.staticCloudId = null;
