@@ -2,6 +2,7 @@ package com.algangi.mongle.booth.application.service;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.algangi.mongle.booth.presentation.dto.BoothRegistrationRequest;
 import com.algangi.mongle.booth.presentation.dto.BoothRegistrationResponse;
@@ -25,6 +26,7 @@ public class BoothRegistrationService {
         return "booth_" + boothName;
     }
 
+    @Transactional
     public BoothRegistrationResponse registerBooth(BoothRegistrationRequest request) {
         String boothName = request.boothName();
         String boothId = generateBoothId(boothName);
