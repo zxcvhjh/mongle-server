@@ -38,7 +38,7 @@ public class JwtAccessTokenManager implements AccessTokenManager {
             throw new IllegalArgumentException("액세스 토큰 생성 시 Role은 필수값입니다.");
         }
         Map<String, Object> claims = new HashMap<>();
-        claims.put(CLAIM_KEY_ROLE, role.name());
+        claims.put(CLAIM_KEY_ROLE, role.getRole());
         String accessToken = jwtHandler.createToken(memberId, claims,
             accessTokenExpirationMillis);
         return new AccessToken(accessToken, accessTokenExpirationMillis);
