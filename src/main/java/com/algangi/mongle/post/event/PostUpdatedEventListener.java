@@ -28,7 +28,7 @@ public class PostUpdatedEventListener {
     @Async("fileTaskExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void handleFileUpdatedEvent(PostUpdatedEvent event) {
+    public void handlePostUpdatedEvent(PostUpdatedEvent event) {
         log.info("Receiving SQS message for post: {}", event.postId());
         try {
             List<String> keysToAdd = event.finalFileKeys().stream()
@@ -38,11 +38,11 @@ public class PostUpdatedEventListener {
                 .filter(key -> !event.finalFileKeys().contains(key))
                 .toList();
 
-            //파일 커밋 (추가된 파일 임시 저장소에서 영구 저장소로 이동)
+            //파일 커밋 (태깅 변경)
             if (!keysToAdd.isEmpty()) {
                 fileService.commitFiles(keysToAdd);
             }
-            //파일 삭제 (삭제된 파일 영구 저장소에서 삭제)
+            //파일 삭제 (스토리지에서 삭제)
             if (!keysToDelete.isEmpty()) {
                 fileService.deletePermanentFiles(keysToDelete);
             }

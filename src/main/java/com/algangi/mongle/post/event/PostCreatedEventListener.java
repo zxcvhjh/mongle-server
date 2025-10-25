@@ -30,7 +30,7 @@ public class PostCreatedEventListener {
     @Async("fileTaskExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void handleFileCommit(PostCreatedEvent event) {
+    public void handlePostCreatedEvent(PostCreatedEvent event) {
         log.info("게시물 파일 커밋/활성화 작업 시작: PostId={}", event.postId());
         try {
             Post post = postFinder.getPostOrThrow(event.postId());
