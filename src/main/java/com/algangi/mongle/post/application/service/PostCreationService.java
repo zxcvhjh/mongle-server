@@ -7,6 +7,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.algangi.mongle.comment.application.service.NotifyBotCommentService;
 import com.algangi.mongle.dynamicCloud.domain.model.DynamicCloud;
 import com.algangi.mongle.dynamicCloud.domain.repository.DynamicCloudRepository;
 import com.algangi.mongle.dynamicCloud.domain.service.DynamicCloudFormationService;
@@ -118,8 +119,8 @@ public class PostCreationService {
             existingPostCount + 1 <= MAX_POST_COUNT_PER_USER ? existingPostCount + 1
                 : MAX_POST_COUNT_PER_USER;
         String content = String.format(
-            "⚙\uFE0F게시글 (%d/%d) - 5개 초과시 가장 오래된 게시글 삭제"
-                + "\n⚙\uFE0F24시간 후 게시글은 자동 삭제됩니다.",
+            "⚙\uFE0F 게시글 (%d/%d) · 5개 초과시 가장 오래된 게시글 삭제"
+                + "\n⚙\uFE0F 24시간 후 게시글은 자동 삭제됩니다.",
             currentPostCount,
             MAX_POST_COUNT_PER_USER);
         notifyBotCommentService.notifyByComment(content, savedPost);

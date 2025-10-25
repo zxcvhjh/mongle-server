@@ -1,4 +1,4 @@
-package com.algangi.mongle.post.application.service;
+package com.algangi.mongle.comment.application.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
