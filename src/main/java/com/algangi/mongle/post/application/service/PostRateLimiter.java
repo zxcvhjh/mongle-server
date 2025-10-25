@@ -5,8 +5,10 @@ import org.springframework.stereotype.Service;
 
 import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.post.exception.PostErrorCode;
+import com.algangi.mongle.post.exception.RateLimitException;
 
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -20,7 +22,15 @@ public class PostRateLimiter {
     public void checkRateLimit(String userId) {
         String key = RATE_LIMIT_KEY_PREFIX + userId;
         if (redisTemplate.hasKey(key)) {
-            throw new ApplicationException(PostErrorCode.POST_RATE_LIMIT_EXCEEDED);
+            long ttlSeconds = redisTemplate.getExpire(key, TimeUnit.SECONDS);
+
+            ttlSeconds =
+                ttlSeconds < 0 ? BLOCK_DURATION.getSeconds() : ttlSeconds;
+
+            long minutes = ttlSeconds / 60;
+            long seconds = ttlSeconds % 60;
+
+            throw new RateLimitException(PostErrorCode.POST_RATE_LIMIT_EXCEEDED, minutes, seconds);
         }
     }
 

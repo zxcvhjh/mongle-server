@@ -2,6 +2,7 @@ package com.algangi.mongle.global.exception;
 
 import com.algangi.mongle.auth.exception.BannedEmailException;
 import com.algangi.mongle.global.dto.ApiResponse;
+import com.algangi.mongle.post.exception.RateLimitException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
@@ -24,7 +25,15 @@ public class GlobalExceptionHandler {
         ApplicationException exception) {
 
         ErrorCode errorCode = exception.getErrorCode();
-        
+
+        if (exception instanceof RateLimitException) {
+            log.error("Unexpected ApplicationException type caught by general handler: {}",
+                exception.getClass().getName());
+            return ResponseEntity.status(errorCode.getStatus())
+                .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage(),
+                    ErrorInfo.of(exception.getErrorInfo())));
+        }
+
         if (exception instanceof BannedEmailException) {
             return ResponseEntity.status(errorCode.getStatus())
                 .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage()));
@@ -34,6 +43,15 @@ public class GlobalExceptionHandler {
             .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage(),
                 ErrorInfo.of(exception.getErrorInfo())));
     }
+
+    @ExceptionHandler(RateLimitException.class)
+    public ResponseEntity<ApiResponse<Void>> handleRateLimitException(
+        RateLimitException exception) {
+        ErrorCode errorCode = exception.getErrorCode();
+        return ResponseEntity.status(errorCode.getStatus())
+            .body(ApiResponse.error(errorCode.getCode(), exception.getMessage()));
+    }
+
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<ErrorInfo>> handleIllegalArgumentException(
