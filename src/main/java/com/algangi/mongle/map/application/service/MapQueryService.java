@@ -72,8 +72,8 @@ public class MapQueryService {
 
         List<String> postIdsToCheck = grains.stream().map(Post::getId).toList();
         Set<String> viewedPostIds = (!StringUtils.hasText(memberId) || postIdsToCheck.isEmpty())
-                ? java.util.Collections.emptySet()
-                : postViewLogService.findViewedPostIdsInList(memberId, postIdsToCheck);
+            ? java.util.Collections.emptySet()
+            : postViewLogService.findViewedPostIdsInList(memberId, postIdsToCheck);
 
         List<StaticCloud> staticClouds = staticCloudRepository.findCloudsInCells(s2cellTokens);
         List<DynamicCloud> dynamicClouds = dynamicCloudRepository.findActiveCloudsInCells(
@@ -97,17 +97,22 @@ public class MapQueryService {
                 if (author == null) {
                     authorDto = new MapObjectsResponse.Grain.Author(null, "익명의 몽글러", null);
                 } else if (isAnonymous) {
-                    authorDto = new MapObjectsResponse.Grain.Author(author.getMemberId(), "익명의 몽글러", null);
+                    authorDto = new MapObjectsResponse.Grain.Author(author.getMemberId(), "익명의 몽글러",
+                        null);
                 } else {
                     String profileImageUrl = null;
                     if (post.getStatus() == PostStatus.ACTIVE && author.getProfileImage() != null) {
                         try {
-                            profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage()).url();
+                            profileImageUrl = viewUrlIssueService.issueViewUrl(
+                                author.getProfileImage()).url();
                         } catch (Exception e) {
-                            log.warn("Failed to issue view URL for profile image key in map query: {}", author.getProfileImage(), e);
+                            log.warn(
+                                "Failed to issue view URL for profile image key in map query: {}",
+                                author.getProfileImage(), e);
                         }
                     }
-                    authorDto = new MapObjectsResponse.Grain.Author(author.getMemberId(), author.getNickname(), profileImageUrl);
+                    authorDto = new MapObjectsResponse.Grain.Author(author.getMemberId(),
+                        author.getNickname(), profileImageUrl);
                 }
 
                 boolean isViewed = viewedPostIds.contains(post.getId());
@@ -120,7 +125,8 @@ public class MapQueryService {
                     post.getLocation().getLongitude(),
                     authorDto,
                     isViewed,
-                    isRecent
+                    isRecent,
+                    null
                 );
             })
             .toList();
