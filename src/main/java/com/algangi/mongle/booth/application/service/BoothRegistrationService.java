@@ -42,7 +42,7 @@ public class BoothRegistrationService {
             boothName,
             null);
         Member savedBooth = memberRepository.save(boothAccount);
-        return BoothRegistrationResponse.of(savedBooth, request.password());
+        return BoothRegistrationResponse.of(savedBooth);
     }
 
 }
