@@ -3,6 +3,8 @@ package com.algangi.mongle.member.domain.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.util.StringUtils;
+
 import com.algangi.mongle.global.entity.TimeBaseEntity;
 import com.github.f4b6a3.ulid.UlidCreator;
 
@@ -69,6 +71,7 @@ public class Member extends TimeBaseEntity {
     public static Member createUserWithId(String memberId, String email, String encodedPassword,
         String nickname,
         String profileImage) {
+        validateMemberId(memberId);
         validateUserEssentials(email, encodedPassword, nickname);
         validatePasswordEncoding(encodedPassword);
         return Member.builder()
@@ -81,9 +84,16 @@ public class Member extends TimeBaseEntity {
             .build();
     }
 
+    private static void validateMemberId(String memberId) {
+        if (!StringUtils.hasText(memberId)) {
+            throw new IllegalArgumentException("memberId는 필수값입니다.");
+        }
+    }
+
     public static Member createAdmin(String memberId, String email, String nickname,
         String profileImage,
         String encodedPassword) {
+        validateMemberId(memberId);
         validateUserEssentials(email, encodedPassword, nickname);
         validatePasswordEncoding(encodedPassword);
         return Member.builder()
