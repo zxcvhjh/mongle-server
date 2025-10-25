@@ -28,7 +28,8 @@ public class AdminAccountInitializer implements CommandLineRunner {
         new AdminSeed("admin_02", "test@test2.com", "관리자2"),
         new AdminSeed("admin_03", "test@test3.com", "관리자3"),
         new AdminSeed("admin_04", "test@test4.com", "관리자4"),
-        new AdminSeed("admin_05", "test@test5.com", "관리자5")
+        new AdminSeed("admin_05", "test@test5.com", "관리자5"),
+        new AdminSeed("admin_notify_bot", "admin_notify_bot@mongle.com", "알림 봇")
     );
     private final PasswordEncoder passwordEncoder;
     private final MemberRepository memberRepository;
