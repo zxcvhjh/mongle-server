@@ -24,6 +24,7 @@ import com.algangi.mongle.post.domain.model.PostStatus;
 import com.algangi.mongle.post.domain.repository.PostRepository;
 import com.algangi.mongle.post.domain.service.LocationRandomizer;
 import com.algangi.mongle.post.event.PostCreatedEvent;
+import com.algangi.mongle.post.exception.PostErrorCode;
 import com.algangi.mongle.post.presentation.dto.PostCreateRequest;
 import com.algangi.mongle.post.presentation.dto.PostCreateResponse;
 import com.algangi.mongle.staticCloud.domain.model.StaticCloud;
@@ -54,6 +55,26 @@ public class PostCreationService {
     public PostCreateResponse createPost(PostCreateRequest request, String authorId) {
         // 회원에 락을 걸어 동시성 처리 보완 (동일한 사용자 요청의 경우 락 걸림)
         Member author = memberFinder.getMemberWithLockOrThrow(authorId);
+
+        // 관리자 게시글의 경우 제약 없이 게시물 생성 후 바로 반환하도록 처리
+        if (author.isAdmin()) {
+            Post adminPost = createNonExpiredStandalone(request, authorId);
+            postRepository.save(adminPost);
+            eventPublisher.publishEvent(
+                new PostCreatedEvent(adminPost.getId(), request.fileKeyList()));
+            return PostCreateResponse.from(adminPost);
+        }
+        // 부스 게시물의 경우 알갱이로만 생성 및 최대 1개 제약 조건
+        if (author.isBooth()) {
+            if (postRepository.countByAuthorIdAndStatus(authorId, PostStatus.ACTIVE) >= 1) {
+                throw new ApplicationException(PostErrorCode.BOOTH_POST_MAXIMUM_EXCEED);
+            }
+            Post boothPost = createNonExpiredStandalone(request, authorId);
+            postRepository.save(boothPost);
+            eventPublisher.publishEvent(
+                new PostCreatedEvent(boothPost.getId(), request.fileKeyList()));
+            return PostCreateResponse.from(boothPost);
+        }
 
         requireActive(author);
 
@@ -182,6 +203,19 @@ public class PostCreationService {
             command.content(),
             command.authorId(),
             command.isAnonymous()
+        );
+    }
+
+    private Post createNonExpiredStandalone(PostCreateRequest request,
+        String authorId) {
+        String s2TokenId = cellService.generateS2TokenIdFrom(request.latitude(),
+            request.longitude());
+        return Post.createNonExpiredStandalone(
+            Location.create(request.latitude(), request.longitude()),
+            s2TokenId,
+            request.content(),
+            authorId,
+            false
         );
     }
 

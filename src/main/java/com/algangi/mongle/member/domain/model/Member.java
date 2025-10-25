@@ -68,7 +68,7 @@ public class Member extends TimeBaseEntity {
             .build();
     }
 
-    public static Member createUserWithId(String memberId, String email, String encodedPassword,
+    public static Member createBoothAccount(String memberId, String email, String encodedPassword,
         String nickname,
         String profileImage) {
         validateMemberId(memberId);
@@ -80,7 +80,7 @@ public class Member extends TimeBaseEntity {
             .encodedPassword(encodedPassword)
             .nickname(nickname)
             .profileImage(profileImage)
-            .memberRole(MemberRole.USER)
+            .memberRole(MemberRole.BOOTH)
             .build();
     }
 
@@ -143,5 +143,9 @@ public class Member extends TimeBaseEntity {
 
     public boolean isAdmin() {
         return this.memberRole == MemberRole.ADMIN;
+    }
+
+    public boolean isBooth() {
+        return this.memberRole == MemberRole.BOOTH;
     }
 }
