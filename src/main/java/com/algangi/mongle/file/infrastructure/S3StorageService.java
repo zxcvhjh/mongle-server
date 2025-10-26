@@ -16,6 +16,8 @@ import software.amazon.awssdk.services.s3.model.Delete;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsResponse;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.PutObjectTaggingRequest;
 import software.amazon.awssdk.services.s3.model.S3Error;
@@ -128,6 +130,27 @@ public class S3StorageService implements StorageService {
             throw new ApplicationException(AwsErrorCode.S3_FILE_DELETE_FAILED, e)
                 .addErrorInfo("bucket", bucket)
                 .addErrorInfo("s3Keys", String.join(", ", s3Keys))
+                .addErrorInfo("awsErrorMessage", e.getMessage());
+        }
+    }
+
+    @Override
+    public boolean checkFileExists(String s3Key) {
+        if (s3Key == null || s3Key.isBlank()) {
+            return false;
+        }
+        try {
+            s3Client.headObject(HeadObjectRequest.builder()
+                .bucket(bucket)
+                .key(s3Key)
+                .build());
+            return true;
+        } catch (NoSuchKeyException e) {
+            return false;
+        } catch (S3Exception e) {
+            throw new ApplicationException(AwsErrorCode.S3_FILE_NOT_FOUND_IN_STORAGE, e)
+                .addErrorInfo("s3Key", s3Key)
+                .addErrorInfo("operation", "checkFileExists (headObject)")
                 .addErrorInfo("awsErrorMessage", e.getMessage());
         }
     }

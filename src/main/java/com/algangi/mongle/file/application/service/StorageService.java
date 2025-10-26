@@ -11,4 +11,6 @@ public interface StorageService {
     void deleteFile(String fileKey);
 
     void deleteBulkFiles(List<String> fileKeys);
+
+    boolean checkFileExists(String s3Key);
 }
