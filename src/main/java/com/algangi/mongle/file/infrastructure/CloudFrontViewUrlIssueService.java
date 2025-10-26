@@ -71,14 +71,16 @@ public class CloudFrontViewUrlIssueService implements ViewUrlIssueService {
             // TODO: 이후 안드로이드 단에서 검증하도록 변경
             if (storageService.checkFileExists(optimizedFileKey)) {
                 //optimizedFileKey
-                return generateSignedViewUrl(optimizedFileKey, expirationTime);
+                String optimizedFileUrl = generateSignedViewUrl(optimizedFileKey, expirationTime);
+                return new PresignedUrl(fileKey, optimizedFileUrl, expirationTime);
             }
         }
         //originalFileKey
-        return generateSignedViewUrl(fileKey, expirationTime);
+        String originalFileUrl = generateSignedViewUrl(fileKey, expirationTime);
+        return new PresignedUrl(fileKey, originalFileUrl, expirationTime);
     }
 
-    private PresignedUrl generateSignedViewUrl(String fileKey, Instant expirationTime) {
+    private String generateSignedViewUrl(String fileKey, Instant expirationTime) {
         String resourceUrl = HTTPS + cloudFrontProperties.domain() + DIR_DELIMITER + fileKey;
 
         try {
@@ -89,11 +91,8 @@ public class CloudFrontViewUrlIssueService implements ViewUrlIssueService {
                 .expirationDate(expirationTime)
                 .build();
 
-            String issuedUrl = cloudFrontUtilities.getSignedUrlWithCannedPolicy(signerRequest)
+            return cloudFrontUtilities.getSignedUrlWithCannedPolicy(signerRequest)
                 .url();
-
-            return new PresignedUrl(fileKey, issuedUrl, expirationTime);
-
         } catch (CloudFrontException e) {
             throw new ApplicationException(AwsErrorCode.CLOUDFRONT_PRESIGNED_URL_ISSUE_FAILED, e)
                 .addErrorInfo("awsErrorMessage", e.getMessage());
