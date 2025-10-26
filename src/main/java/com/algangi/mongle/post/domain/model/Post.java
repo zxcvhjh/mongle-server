@@ -1,5 +1,7 @@
 package com.algangi.mongle.post.domain.model;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,13 +21,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.util.StringUtils;
 
 @Entity
 @Table(name = "post")
@@ -49,9 +50,6 @@ public class Post extends TimeBaseEntity {
 
     @Column(nullable = false, length = 2000)
     private String content;
-
-    @Column(length = 2000, nullable = true)
-    private String infoText;
 
     @Column(nullable = false)
     @Builder.Default
@@ -102,6 +100,9 @@ public class Post extends TimeBaseEntity {
     private Long dynamicCloudId;
 
     private Long staticCloudId;
+
+    @Column(length = 500)
+    private String infoText;
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -176,8 +177,8 @@ public class Post extends TimeBaseEntity {
             .content(content)
             .authorId(authorId)
             .isAnonymous(isAnonymous)
-            .infoText(infoText)
             .expiredAt(null)
+            .infoText(infoText)
             .build();
     }
 
@@ -186,35 +187,34 @@ public class Post extends TimeBaseEntity {
         this.staticCloudId = null;
     }
 
-    public void addPostFiles(List<PostFile> postFiles) {
-        if (postFiles == null) {
-            throw new IllegalArgumentException("게시물 파일 목록은 null일 수 없습니다.");
-        }
-        postFiles.forEach(this::addPostFile);
-    }
-
-    public void addPostFile(PostFile postFile) {
-        if (postFile == null) {
-            throw new IllegalArgumentException("게시물 파일은 null일 수 없습니다.");
-        }
-        this.postFiles.add(postFile);
-        postFile.setPost(this);
-    }
-
-    public void addComment(Comment comment) {
-        if (comment == null) {
-            throw new IllegalArgumentException("댓글은 null일 수 없습니다.");
-        }
-        this.comments.add(comment);
-        comment.setPost(this);
-    }
-
     public void updateContent(String content) {
-        if (content == null) {
-            throw new IllegalArgumentException("게시물 내용은 null일 수 없습니다.");
+        if (!StringUtils.hasText(content)) {
+            throw new IllegalArgumentException("게시물 내용은 비워둘 수 없습니다.");
+        }
+        if (content.length() > 2000) {
+            throw new IllegalArgumentException("게시물 내용은 2000자를 초과할 수 없습니다.");
         }
         this.content = content;
     }
+
+    public void updateAdminDetails(String content, Boolean isAnonymous, String infoText) {
+        if (StringUtils.hasText(content)) {
+            if (content.length() > 2000) {
+                throw new IllegalArgumentException("게시물 내용은 2000자를 초과할 수 없습니다.");
+            }
+            this.content = content;
+        }
+        if (isAnonymous != null) {
+            this.isAnonymous = isAnonymous;
+        }
+        this.infoText = infoText;
+
+        if (this.expiredAt == null) {
+            this.expiredAt = null;
+        }
+        this.status = PostStatus.PENDING;
+    }
+
 
     public void updatePostFiles(List<PostFile> postFiles) {
         if (postFiles == null) {
@@ -230,22 +230,24 @@ public class Post extends TimeBaseEntity {
         }
     }
 
-    public void updateAdminDetails(String content, Boolean isAnonymous, String infoText) {
-        if (content != null) {
-            this.content = content;
-        }
-        if (isAnonymous != null) {
-            this.isAnonymous = isAnonymous;
-        }
-        this.infoText = infoText;
+    public void addPostFiles(List<PostFile> postFiles) {
+        postFiles.forEach(this::addPostFile);
+    }
+
+    public void addPostFile(PostFile postFile) {
+        this.postFiles.add(postFile);
+        postFile.setPost(this);
+    }
+
+    public void addComment(Comment comment) {
+        this.comments.add(comment);
+        comment.setPost(this);
     }
 
     public void markAsActive() {
-        if (this.status != PostStatus.BLOCKED_BY_REPORTS &&
-            this.status != PostStatus.DELETED_BY_ADMIN &&
-            this.status != PostStatus.DELETED_BY_USER &&
-            this.status != PostStatus.DELETED_BY_WITHDRAWAL) {
+        if (this.status == PostStatus.PENDING || this.status == PostStatus.ACTIVE) {
             this.status = PostStatus.ACTIVE;
+        } else {
         }
     }
 
@@ -256,25 +258,29 @@ public class Post extends TimeBaseEntity {
     }
 
     public void markAsPending() {
-        if (this.status != PostStatus.BLOCKED_BY_REPORTS &&
-            this.status != PostStatus.DELETED_BY_ADMIN &&
-            this.status != PostStatus.DELETED_BY_USER &&
-            this.status != PostStatus.DELETED_BY_WITHDRAWAL) {
+        if (this.status == PostStatus.ACTIVE || this.status == PostStatus.PENDING) {
             this.status = PostStatus.PENDING;
         }
     }
 
     public void softDeleteByUser() {
-        if (isDeletedOrBlocked()) {
+        if (isDeletable()) {
             this.status = PostStatus.DELETED_BY_USER;
         }
     }
 
     public void softDeleteByAdmin() {
-        if (isDeletedOrBlocked()) {
+        if (isDeletable()) {
             this.status = PostStatus.DELETED_BY_ADMIN;
         }
     }
+
+    private boolean isDeletable() {
+        return this.status == PostStatus.ACTIVE ||
+            this.status == PostStatus.PENDING ||
+            this.status == PostStatus.EXPIRED;
+    }
+
 
     public void increaseLikeCount(long delta) {
         long newCount = this.likeCount + delta;
@@ -287,23 +293,14 @@ public class Post extends TimeBaseEntity {
     }
 
     public void incrementReportCountAndBlockIfNeeded() {
-        if (this.status != PostStatus.ACTIVE) {
-            throw new ApplicationException(PostErrorCode.INVALID_STATUS)
-                .addErrorInfo("postId", this.id)
-                .addErrorInfo("currentStatus", this.status.name());
+        if (this.status != PostStatus.ACTIVE && this.status != PostStatus.PENDING) {
+            throw new ApplicationException(PostErrorCode.INVALID_STATUS);
         }
 
-        this.reportCount += 1;
+        this.reportCount = Math.max(0, this.reportCount) + 1;
         if (this.reportCount >= REPORT_BLOCK_THRESHOLD) {
             this.status = PostStatus.BLOCKED_BY_REPORTS;
         }
-    }
-
-    private boolean isDeletedOrBlocked() {
-        return this.status != PostStatus.DELETED_BY_USER &&
-            this.status != PostStatus.DELETED_BY_ADMIN &&
-            this.status != PostStatus.DELETED_BY_WITHDRAWAL &&
-            this.status != PostStatus.BLOCKED_BY_REPORTS;
     }
 }
 
