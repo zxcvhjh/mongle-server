@@ -1,13 +1,7 @@
 package com.algangi.mongle.member.domain.model;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.springframework.util.StringUtils;
-
 import com.algangi.mongle.global.entity.TimeBaseEntity;
 import com.github.f4b6a3.ulid.UlidCreator;
-
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -17,11 +11,15 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.util.StringUtils;
+
 
 @Entity
 @Table(name = "member", uniqueConstraints = {
@@ -69,8 +67,7 @@ public class Member extends TimeBaseEntity {
     }
 
     public static Member createBoothAccount(String memberId, String email, String encodedPassword,
-        String nickname,
-        String profileImage) {
+        String nickname, String profileImage) {
         validateMemberId(memberId);
         validateUserEssentials(email, encodedPassword, nickname);
         validatePasswordEncoding(encodedPassword);
@@ -91,8 +88,7 @@ public class Member extends TimeBaseEntity {
     }
 
     public static Member createAdmin(String memberId, String email, String nickname,
-        String profileImage,
-        String encodedPassword) {
+        String profileImage, String encodedPassword) {
         validateMemberId(memberId);
         validateUserEssentials(email, encodedPassword, nickname);
         validatePasswordEncoding(encodedPassword);
@@ -113,13 +109,13 @@ public class Member extends TimeBaseEntity {
     }
 
     private static void validateUserEssentials(String email, String password, String nickname) {
-        if (email == null || email.isBlank()) {
+        if (!StringUtils.hasText(email)) {
             throw new IllegalArgumentException("이메일은 필수값입니다.");
         }
-        if (password == null || password.isBlank()) {
+        if (!StringUtils.hasText(password)) {
             throw new IllegalArgumentException("비밀번호는 필수값입니다.");
         }
-        if (nickname == null || nickname.isBlank()) {
+        if (!StringUtils.hasText(nickname)) {
             throw new IllegalArgumentException("닉네임은 필수값입니다");
         }
     }
@@ -140,6 +136,14 @@ public class Member extends TimeBaseEntity {
     public void updateProfileImage(String profileImageKey) {
         this.profileImage = profileImageKey;
     }
+
+    public void updateNickname(String newNickname) {
+        if (newNickname == null || newNickname.isBlank()) {
+            throw new IllegalArgumentException("닉네임은 비워둘 수 없습니다.");
+        }
+        this.nickname = newNickname;
+    }
+
 
     public boolean isAdmin() {
         return this.memberRole == MemberRole.ADMIN;
