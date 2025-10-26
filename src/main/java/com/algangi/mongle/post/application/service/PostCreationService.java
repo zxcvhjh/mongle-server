@@ -15,6 +15,7 @@ import com.algangi.mongle.global.domain.service.CellService;
 import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.member.application.service.MemberFinder;
 import com.algangi.mongle.member.domain.model.Member;
+import com.algangi.mongle.member.domain.model.MemberRole;
 import com.algangi.mongle.member.domain.model.MemberStatus;
 import com.algangi.mongle.member.exception.MemberErrorCode;
 import com.algangi.mongle.post.application.dto.PostCreationCommand;
@@ -25,6 +26,7 @@ import com.algangi.mongle.post.domain.repository.PostRepository;
 import com.algangi.mongle.post.domain.service.LocationRandomizer;
 import com.algangi.mongle.post.event.PostCreatedEvent;
 import com.algangi.mongle.post.exception.PostErrorCode;
+import com.algangi.mongle.post.presentation.dto.AdminPostCreateRequest;
 import com.algangi.mongle.post.presentation.dto.PostCreateRequest;
 import com.algangi.mongle.post.presentation.dto.PostCreateResponse;
 import com.algangi.mongle.staticCloud.domain.model.StaticCloud;
@@ -53,23 +55,31 @@ public class PostCreationService {
 
     @Transactional
     public PostCreateResponse createPost(PostCreateRequest request, String authorId) {
-        // 회원에 락을 걸어 동시성 처리 보완 (동일한 사용자 요청의 경우 락 걸림)
         Member author = memberFinder.getMemberWithLockOrThrow(authorId);
 
-        // 관리자 게시글의 경우 제약 없이 게시물 생성 후 바로 반환하도록 처리
         if (author.isAdmin()) {
-            Post adminPost = createNonExpiredStandalone(request, authorId);
-            postRepository.save(adminPost);
-            eventPublisher.publishEvent(
-                new PostCreatedEvent(adminPost.getId(), request.fileKeyList()));
-            return PostCreateResponse.from(adminPost);
+            log.warn("관리자 계정({})이 일반 사용자용 게시글 생성 API를 호출했습니다. 관리자용 API 사용을 권장합니다.", authorId);
+            AdminPostCreateRequest adminRequest = new AdminPostCreateRequest(
+                request.latitude(), request.longitude(), request.content(),
+                null,
+                request.fileKeyList(), request.isRandomLocationEnabled(), request.isAnonymous()
+            );
+            return createAdminPost(adminRequest, authorId);
         }
-        // 부스 게시물의 경우 알갱이로만 생성 및 최대 1개 제약 조건
+
         if (author.isBooth()) {
             if (postRepository.countByAuthorIdAndStatus(authorId, PostStatus.ACTIVE) >= 1) {
                 throw new ApplicationException(PostErrorCode.BOOTH_POST_MAXIMUM_EXCEED);
             }
-            Post boothPost = createNonExpiredStandalone(request, authorId);
+            Post boothPost = createNonExpiredStandalone(
+                Location.create(request.latitude(), request.longitude()),
+                cellService.generateS2TokenIdFrom(request.latitude(), request.longitude()),
+                request.content(),
+                authorId,
+                Boolean.TRUE.equals(request.isAnonymous()),
+                null
+            );
+
             postRepository.save(boothPost);
             eventPublisher.publishEvent(
                 new PostCreatedEvent(boothPost.getId(), request.fileKeyList()));
@@ -78,21 +88,17 @@ public class PostCreationService {
 
         requireActive(author);
 
-        // 관리자가 아닌 경우에만 3분 글쓰기 제한 적용
-        if (!author.isAdmin()) {
-            postRateLimiter.checkRateLimit(authorId);
-        }
+        postRateLimiter.checkRateLimit(authorId);
 
-        // 회원당 게시물 최대 5개 유지
         long existingPostCount = postRepository.countByAuthorIdAndStatus(authorId,
             PostStatus.ACTIVE);
         if (existingPostCount >= MAX_POST_COUNT_PER_USER) {
             Optional<Post> oldestPost = postRepository.findFirstByAuthorIdAndStatusOrderByCreatedDateAsc(
                 authorId, PostStatus.ACTIVE);
-            oldestPost.ifPresent(Post::softDeleteByAdmin);
+            oldestPost.ifPresent(Post::softDeleteByUser);
         }
 
-        boolean isAnonymous = request.isAnonymous() != null && request.isAnonymous();
+        boolean isAnonymous = Boolean.TRUE.equals(request.isAnonymous());
 
         Location originalLocation = Location.create(request.latitude(), request.longitude());
         String originalS2TokenId = cellService.generateS2TokenIdFrom(originalLocation.getLatitude(),
@@ -101,7 +107,7 @@ public class PostCreationService {
             originalS2TokenId);
 
         Location finalLocation = originalLocation;
-        if (request.isRandomLocationEnabled() && staticCloud.isEmpty()) {
+        if (Boolean.TRUE.equals(request.isRandomLocationEnabled()) && staticCloud.isEmpty()) {
             finalLocation = locationRandomizer.randomize(originalLocation);
         }
 
@@ -118,24 +124,19 @@ public class PostCreationService {
         Post createdPost;
         Optional<DynamicCloud> existingDynamicCloud = dynamicCloudRepository.findActiveByS2TokenId(
             finalS2TokenId);
-        // 1. 정적 구름 존재 여부 확인
+
         if (staticCloud.isPresent()) {
             createdPost = createPostInStaticCloud(command, staticCloud.get());
-        }
-        // 2. 동적 구름 존재 여부 확인
-        else if (existingDynamicCloud.isPresent()) {
+        } else if (existingDynamicCloud.isPresent()) {
             createdPost = createPostInDynamicCloud(command, existingDynamicCloud.get());
-        }
-        // 3. 동적 구름이 없는 경우
-        else {
+        } else {
             createdPost = handleNewPost(command, finalS2TokenId);
         }
-        Post savedPost = postRepository.save(createdPost);
-        if (!author.isAdmin()) {
-            postRateLimiter.blockUser(authorId);
-        }
 
-        // TODO: 추후 변경 예정
+        Post savedPost = postRepository.save(createdPost);
+
+        postRateLimiter.blockUser(authorId);
+
         long currentPostCount =
             existingPostCount + 1 <= MAX_POST_COUNT_PER_USER ? existingPostCount + 1
                 : MAX_POST_COUNT_PER_USER;
@@ -146,26 +147,51 @@ public class PostCreationService {
             MAX_POST_COUNT_PER_USER);
         notifyBotCommentService.notifyByComment(content, savedPost);
 
-        eventPublisher.publishEvent(
-            new PostCreatedEvent(savedPost.getId(), request.fileKeyList()));
+        eventPublisher.publishEvent(new PostCreatedEvent(savedPost.getId(), request.fileKeyList()));
         return PostCreateResponse.from(savedPost);
     }
 
+
+    @Transactional
+    public PostCreateResponse createAdminPost(AdminPostCreateRequest request, String authorId) {
+        Member author = memberFinder.getMemberOrThrow(authorId);
+        if (author.getMemberRole() != MemberRole.ADMIN) {
+            throw new ApplicationException(MemberErrorCode.MEMBER_IS_BANNED);
+        }
+
+        Location location = Location.create(request.latitude(), request.longitude());
+        String s2TokenId = cellService.generateS2TokenIdFrom(location.getLatitude(),
+            location.getLongitude());
+
+        Post adminPost = Post.createNonExpiredStandalone(
+            location,
+            s2TokenId,
+            request.content(),
+            authorId,
+            request.isAnonymous(),
+            request.infoText()
+        );
+
+        Post savedPost = postRepository.save(adminPost);
+
+        eventPublisher.publishEvent(new PostCreatedEvent(savedPost.getId(), request.fileKeyList()));
+
+        return PostCreateResponse.from(savedPost);
+    }
+
+
     private Post handleNewPost(PostCreationCommand command, String s2TokenId) {
         List<Post> existingPostsInCell = postRepository.findByS2TokenIdWithLock(s2TokenId);
-        // Concurrency Gap 방지 로직
         Optional<DynamicCloud> cloudAfterLock = dynamicCloudRepository.findActiveByS2TokenId(
             s2TokenId);
         if (cloudAfterLock.isPresent()) {
             return createPostInDynamicCloud(command, cloudAfterLock.get());
         }
 
-        // 게시물 개수에 따른 처리
         int totalPostCount = existingPostsInCell.size() + 1;
         if (totalPostCount <= DYNAMIC_CLOUD_CREATION_THRESHOLD) {
             return createStandalonePost(command);
         } else {
-            // DynamicCloudService에 동적 구름 생성 및 병합 책임을 위임
             DynamicCloud targetCloud = dynamicCloudFormationService.createDynamicCloudAndMergeIfNeeded(
                 s2TokenId, existingPostsInCell);
             return createPostInDynamicCloud(command, targetCloud);
@@ -173,7 +199,6 @@ public class PostCreationService {
     }
 
 
-    //게시물 생성 헬퍼 메서드
     private Post createPostInStaticCloud(PostCreationCommand command, StaticCloud staticCloud) {
         return Post.createInStaticCloud(
             command.location(),
@@ -206,18 +231,24 @@ public class PostCreationService {
         );
     }
 
-    private Post createNonExpiredStandalone(PostCreateRequest request,
-        String authorId) {
-        String s2TokenId = cellService.generateS2TokenIdFrom(request.latitude(),
-            request.longitude());
+    private Post createNonExpiredStandalone(
+        Location location,
+        String s2TokenId,
+        String content,
+        String authorId,
+        boolean isAnonymous,
+        String infoText
+    ) {
         return Post.createNonExpiredStandalone(
-            Location.create(request.latitude(), request.longitude()),
+            location,
             s2TokenId,
-            request.content(),
+            content,
             authorId,
-            false
+            isAnonymous,
+            infoText
         );
     }
+
 
     private void requireActive(Member member) {
         if (member.getStatus() == MemberStatus.BANNED) {
@@ -228,3 +259,4 @@ public class PostCreationService {
         }
     }
 }
+
