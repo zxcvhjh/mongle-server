@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -71,20 +70,7 @@ public class FileService {
             return;
         }
 
-        List<String> allKeysToCommit = fileKeys.stream()
-            .flatMap(key -> {
-                if (fileOptimizationUtils.isOptimizableImage(key)) {
-                    // .png와 .webp 키 모두 반환
-                    return Stream.of(key, fileOptimizationUtils.getOptimizedFileKey(key));
-                } else {
-                    // 원본 키(비디오 등)만 반환
-                    return Stream.of(key);
-                }
-            })
-            .distinct()
-            .toList();
-
-        allKeysToCommit.parallelStream().forEach(storageService::changeTagToPermanent);
+        fileKeys.parallelStream().forEach(storageService::changeTagToPermanent);
     }
 
     public void deletePermanentFiles(List<String> fileKeys) {
