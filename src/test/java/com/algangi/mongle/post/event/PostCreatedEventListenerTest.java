@@ -67,7 +67,7 @@ class PostCreatedEventListenerTest {
             PostCreatedEvent event = new PostCreatedEvent(POST_ID, fileKeys);
 
             // when
-            postCreatedEventListener.handleFileCommit(event);
+            postCreatedEventListener.handlePostCreatedEvent(event);
 
             // then
             ArgumentCaptor<List<PostFile>> postFilesCaptor = ArgumentCaptor.forClass(List.class);
@@ -96,7 +96,7 @@ class PostCreatedEventListenerTest {
             PostCreatedEvent event = new PostCreatedEvent(POST_ID, emptyFileKeys);
 
             // when
-            postCreatedEventListener.handleFileCommit(event);
+            postCreatedEventListener.handlePostCreatedEvent(event);
 
             // then
             assertAll(
@@ -127,7 +127,7 @@ class PostCreatedEventListenerTest {
 
             // when & then
             ApplicationException exception = assertThrows(ApplicationException.class, () -> {
-                postCreatedEventListener.handleFileCommit(event);
+                postCreatedEventListener.handlePostCreatedEvent(event);
             });
 
             assertEquals(AwsErrorCode.S3_FILE_TAGGING_FAILED, exception.getErrorCode());
@@ -147,7 +147,7 @@ class PostCreatedEventListenerTest {
 
             // when & then
             assertThrows(ApplicationException.class, () -> {
-                postCreatedEventListener.handleFileCommit(event);
+                postCreatedEventListener.handlePostCreatedEvent(event);
             });
 
             verify(fileService, never()).commitFiles(any());
