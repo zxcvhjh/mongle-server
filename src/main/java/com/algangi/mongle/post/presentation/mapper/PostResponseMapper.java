@@ -6,12 +6,11 @@ import com.algangi.mongle.post.domain.model.Post;
 import com.algangi.mongle.post.domain.model.PostStatus;
 import com.algangi.mongle.post.presentation.dto.PostListResponse;
 import com.algangi.mongle.stats.application.dto.PostStats;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-
-import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -27,37 +26,39 @@ public class PostResponseMapper {
         PostStats stats,
         String myReaction
     ) {
-        boolean isAnonymous = post.isAnonymous();
+        String authorId = post.getAuthorId();
         String customNickname = post.getCustomNickname();
-        PostListResponse.PostSummary.Author authorDto;
-        String authorId = null;
-        String nickname = "익명의 몽글러";
+        boolean isAnonymous = post.isAnonymous();
         String profileImageUrl = null;
+        String finalNickname;
 
-        if (author != null) {
-            authorId = author.getMemberId();
-            if (StringUtils.hasText(customNickname)) {
-                nickname = customNickname;
-            } else if (isAnonymous) {
-                nickname = "익명의 몽글러";
-            } else {
-                nickname = author.getNickname();
-                if (post.getStatus() == PostStatus.ACTIVE && author.getProfileImage() != null) {
-                    try {
-                        profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage())
-                            .url();
-                    } catch (Exception e) {
-                        log.warn(
-                            "Failed to issue view URL for profile image key in PostResponseMapper: {}",
-                            author.getProfileImage(), e);
-                    }
-                }
+        if (author != null && post.getStatus() == PostStatus.ACTIVE
+            && author.getProfileImage() != null) {
+            try {
+                profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage()).url();
+            } catch (Exception e) {
+                log.warn("Failed to issue view URL for profile image key in PostResponseMapper: {}",
+                    author.getProfileImage(), e);
             }
-        } else if (StringUtils.hasText(customNickname)) {
-            nickname = customNickname;
         }
 
-        authorDto = new PostListResponse.PostSummary.Author(authorId, nickname, profileImageUrl);
+        if (author == null) {
+            finalNickname = "익명의 몽글러";
+            profileImageUrl = null;
+        } else if (StringUtils.hasText(customNickname)) {
+            finalNickname = customNickname;
+        } else if (isAnonymous) {
+            finalNickname = "익명의 몽글러";
+            profileImageUrl = null;
+        } else {
+            finalNickname = author.getNickname();
+        }
+
+        PostListResponse.PostSummary.Author authorDto = new PostListResponse.PostSummary.Author(
+            authorId,
+            finalNickname,
+            profileImageUrl
+        );
 
         return new PostListResponse.PostSummary(
             post.getId(),

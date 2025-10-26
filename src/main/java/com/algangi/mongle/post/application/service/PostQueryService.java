@@ -35,8 +35,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.time.Instant;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -59,6 +62,7 @@ public class PostQueryService {
     private final ReactionQueryService reactionQueryService;
     private final PostViewLogService postViewLogService;
     private final PostResponseMapper postResponseMapper;
+
 
     public PostListResponse getPostList(PostListRequest request, String currentMemberId) {
         validateCloudExists(request);
@@ -89,7 +93,10 @@ public class PostQueryService {
         Map<String, List<String>> photoUrlsMap = getPhotoUrlsForPosts(postsOnPage);
 
         Map<String, ReactionType> myReactionsMap = reactionQueryService.getMyReactions(
-            TargetType.POST, postIds, currentMemberId);
+            TargetType.POST,
+            postIds,
+            currentMemberId
+        );
 
         List<PostListResponse.PostSummary> summaries = postsOnPage.stream().map(post -> {
             Member author = authors.get(post.getAuthorId());
@@ -98,7 +105,7 @@ public class PostQueryService {
             PostStats stats = statsMap.getOrDefault(post.getId(), PostStats.empty());
             ReactionType myReaction = myReactionsMap.get(post.getId());
             String myReactionStr = (myReaction != null) ? myReaction.name() : null;
-
+            
             return postResponseMapper.toPostSummary(post, author, photoUrlList, stats,
                 myReactionStr);
         }).toList();
@@ -119,9 +126,9 @@ public class PostQueryService {
         }
 
         Member author = null;
-        if (post.getAuthorId() != null) {
-            author = memberFinder.findMembersByIds(List.of(post.getAuthorId())).stream().findFirst()
-                .orElse(null);
+        if (StringUtils.hasText(post.getAuthorId())) {
+            author = memberFinder.getMemberOrThrow(
+                post.getAuthorId());
         }
 
         contentStatsService.incrementPostViewCount(postId);
@@ -133,6 +140,7 @@ public class PostQueryService {
             } catch (Exception e) {
                 log.warn("Failed to record view in Redis.", e);
             }
+
             eventPublisher.publishEvent(new MemberViewedPostEvent(currentMemberId, postId));
         }
 
@@ -140,7 +148,10 @@ public class PostQueryService {
             .getOrDefault(postId, PostStats.empty());
 
         Map<String, ReactionType> myReactionsMap = reactionQueryService.getMyReactions(
-            TargetType.POST, List.of(postId), currentMemberId);
+            TargetType.POST,
+            List.of(postId),
+            currentMemberId
+        );
         ReactionType myReaction = myReactionsMap.get(postId);
         String myReactionStr = (myReaction != null) ? myReaction.name() : null;
 
@@ -162,35 +173,30 @@ public class PostQueryService {
     }
 
     private PostDetailResponse.Author createDetailAuthorDto(Post post, Member author) {
+        String authorId = post.getAuthorId();
         String customNickname = post.getCustomNickname();
         boolean isAnonymous = post.isAnonymous();
-        String authorId = null;
-        String nickname = "익명의 몽글러";
         String profileImageUrl = null;
 
-        if (author != null) {
-            authorId = author.getMemberId();
-            if (StringUtils.hasText(customNickname)) {
-                nickname = customNickname;
-            } else if (isAnonymous) {
-                nickname = "익명의 몽글러";
-            } else {
-                nickname = author.getNickname();
-                if (post.getStatus() == PostStatus.ACTIVE && author.getProfileImage() != null) {
-                    try {
-                        profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage())
-                            .url();
-                    } catch (Exception e) {
-                        log.warn("Failed to issue view URL for profile image: {}",
-                            author.getProfileImage(), e);
-                    }
-                }
+        if (author != null && post.getStatus() == PostStatus.ACTIVE
+            && author.getProfileImage() != null) {
+            try {
+                profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage()).url();
+            } catch (Exception e) {
+                log.warn("Failed to issue view URL for profile image key in PostDetail: {}",
+                    author.getProfileImage(), e);
             }
-        } else if (StringUtils.hasText(customNickname)) {
-            nickname = customNickname;
         }
 
-        return new PostDetailResponse.Author(authorId, nickname, profileImageUrl);
+        if (author == null) {
+            return new PostDetailResponse.Author(null, "익명의 몽글러", null);
+        } else if (StringUtils.hasText(customNickname)) {
+            return new PostDetailResponse.Author(authorId, customNickname, profileImageUrl);
+        } else if (isAnonymous) {
+            return new PostDetailResponse.Author(authorId, "익명의 몽글러", null);
+        } else {
+            return new PostDetailResponse.Author(authorId, author.getNickname(), profileImageUrl);
+        }
     }
 
 
@@ -216,7 +222,7 @@ public class PostQueryService {
     private Map<String, Member> getAuthors(List<Post> posts) {
         List<String> authorIds = posts.stream()
             .map(Post::getAuthorId)
-            .filter(Objects::nonNull)
+            .filter(StringUtils::hasText)
             .distinct()
             .toList();
         if (authorIds.isEmpty()) {
@@ -298,9 +304,8 @@ public class PostQueryService {
         PostSort finalSort = (sort == null) ? PostSort.ranking_score : sort;
 
         if (finalSort == PostSort.ranking_score) {
-            Double score = lastPost.getRankingScore() != null ? lastPost.getRankingScore() : 0.0;
             return String.join("_",
-                String.valueOf(score),
+                String.valueOf(lastPost.getRankingScore()),
                 formattedDate,
                 lastPost.getId());
         } else {

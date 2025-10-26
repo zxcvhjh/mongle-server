@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.Objects;
+
 
 @Service
 @Slf4j
@@ -47,6 +47,8 @@ public class MapQueryService {
     private final BlockQueryService blockQueryService;
     private final PostViewLogService postViewLogService;
     private final ViewUrlIssueService viewUrlIssueService;
+
+    private static final String ADMIN_DISPLAY_NAME = "몽글 관리자";
 
     public MapObjectsResponse getMapObjects(MapObjectsRequest request, String memberId) {
         if (StringUtils.hasText(memberId)) {
@@ -71,7 +73,7 @@ public class MapQueryService {
 
         List<String> postIdsToCheck = grains.stream().map(Post::getId).toList();
         Set<String> viewedPostIds = (!StringUtils.hasText(memberId) || postIdsToCheck.isEmpty())
-            ? Collections.emptySet()
+            ? java.util.Collections.emptySet()
             : postViewLogService.findViewedPostIdsInList(memberId, postIdsToCheck);
 
         List<StaticCloud> staticClouds = staticCloudRepository.findCloudsInCells(s2cellTokens);
@@ -88,15 +90,13 @@ public class MapQueryService {
         List<MapObjectsResponse.Grain> grainDtos = grains.stream()
             .map(post -> {
                 Member author = authors.get(post.getAuthorId());
-                boolean isGrain =
-                    post.getStaticCloudId() == null && post.getDynamicCloudId() == null;
-                String infoText = isGrain ? post.getInfoText() : null;
-
                 MapObjectsResponse.Grain.Author authorDto = createAuthorDto(post, author);
 
                 boolean isViewed = viewedPostIds.contains(post.getId());
                 boolean isPostCreatedRecently = !post.getCreatedDate().isBefore(thirtyMinutesAgo);
                 boolean isRecent = isLoggedIn && !isViewed && isPostCreatedRecently;
+                boolean isGrain =
+                    post.getStaticCloudId() == null && post.getDynamicCloudId() == null;
 
                 return new MapObjectsResponse.Grain(
                     post.getId(),
@@ -105,7 +105,7 @@ public class MapQueryService {
                     authorDto,
                     isViewed,
                     isRecent,
-                    infoText
+                    isGrain ? post.getInfoText() : null
                 );
             })
             .toList();
@@ -132,49 +132,15 @@ public class MapQueryService {
         return new MapObjectsResponse(grainDtos, staticCloudDtos, dynamicCloudDtos);
     }
 
-    private MapObjectsResponse.Grain.Author createAuthorDto(Post post, Member author) {
-        String customNickname = post.getCustomNickname();
-        boolean isAnonymous = post.isAnonymous();
-        String authorId = null;
-        String nickname = "익명의 몽글러";
-        String profileImageUrl = null;
-
-        if (author != null) {
-            authorId = author.getMemberId();
-            if (StringUtils.hasText(customNickname)) {
-                nickname = customNickname;
-            } else if (isAnonymous) {
-                nickname = "익명의 몽글러";
-            } else {
-                nickname = author.getNickname();
-                if (post.getStatus() == PostStatus.ACTIVE && author.getProfileImage() != null) {
-                    try {
-                        profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage())
-                            .url();
-                    } catch (Exception e) {
-                        log.warn("Failed to issue view URL for profile image key in map query: {}",
-                            author.getProfileImage(), e);
-                    }
-                }
-            }
-        } else if (StringUtils.hasText(customNickname)) {
-            nickname = customNickname;
-        }
-
-        return new MapObjectsResponse.Grain.Author(authorId, nickname, profileImageUrl);
-    }
-
-
     private Map<String, Member> getAuthors(List<Post> grains) {
         if (grains.isEmpty()) {
             return Collections.emptyMap();
         }
         List<String> authorIds = grains.stream()
             .map(Post::getAuthorId)
-            .filter(Objects::nonNull)
+            .filter(StringUtils::hasText)
             .distinct()
             .toList();
-
         if (authorIds.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -182,6 +148,36 @@ public class MapQueryService {
         return memberFinder.findMembersByIds(authorIds).stream()
             .collect(Collectors.toMap(Member::getMemberId, Function.identity()));
     }
+
+    private MapObjectsResponse.Grain.Author createAuthorDto(Post post, Member author) {
+        String authorId = post.getAuthorId();
+        String customNickname = post.getCustomNickname();
+        boolean isAnonymous = post.isAnonymous();
+        String profileImageUrl = null;
+
+        if (author != null && post.getStatus() == PostStatus.ACTIVE
+            && author.getProfileImage() != null) {
+            try {
+                profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage()).url();
+            } catch (Exception e) {
+                log.warn("Failed to issue view URL for profile image key in map query: {}",
+                    author.getProfileImage(), e);
+            }
+        }
+
+        if (author == null) {
+            return new MapObjectsResponse.Grain.Author(null, "익명의 몽글러", null);
+        } else if (StringUtils.hasText(customNickname)) {
+            return new MapObjectsResponse.Grain.Author(authorId, customNickname,
+                profileImageUrl);
+        } else if (isAnonymous) {
+            return new MapObjectsResponse.Grain.Author(authorId, "익명의 몽글러", null);
+        } else {
+            return new MapObjectsResponse.Grain.Author(authorId, author.getNickname(),
+                profileImageUrl);
+        }
+    }
+
 
     private Map<Long, Long> getStaticCloudPostCounts(List<StaticCloud> clouds) {
         if (clouds.isEmpty()) {
