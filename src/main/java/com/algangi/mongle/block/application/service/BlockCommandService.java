@@ -1,5 +1,7 @@
 package com.algangi.mongle.block.application.service;
 
+import com.algangi.mongle.block.exception.BlockErrorCode;
+import com.algangi.mongle.global.exception.ApplicationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -9,6 +11,8 @@ import com.algangi.mongle.member.application.service.MemberFinder;
 import com.algangi.mongle.member.domain.model.Member;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.util.StringUtils;
+
 
 @Service
 @RequiredArgsConstructor
@@ -20,7 +24,11 @@ public class BlockCommandService {
 
     public void blockUser(String blockerId, String blockedId) {
         if (blockerId.equals(blockedId)) {
-            throw new IllegalArgumentException("자기 자신을 차단할 수 없습니다.");
+            throw new ApplicationException(BlockErrorCode.CANNOT_BLOCK_SELF);
+        }
+
+        if (isProtectedAccount(blockedId)) {
+            throw new ApplicationException(BlockErrorCode.CANNOT_BLOCK_ADMIN_OR_BOOTH);
         }
 
         if (blockRepository.findByBlocker_MemberIdAndBlocked_MemberId(blockerId, blockedId)
@@ -38,5 +46,10 @@ public class BlockCommandService {
     public void unblockUser(String blockerId, String blockedId) {
         blockRepository.findByBlocker_MemberIdAndBlocked_MemberId(blockerId, blockedId)
             .ifPresent(blockRepository::delete);
+    }
+
+    private boolean isProtectedAccount(String memberId) {
+        return StringUtils.hasText(memberId) && (memberId.startsWith("admin")
+            || memberId.startsWith("booth"));
     }
 }
