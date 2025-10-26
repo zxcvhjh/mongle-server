@@ -53,11 +53,13 @@ public class PostCreationService {
     public PostCreateResponse createPost(PostCreateRequest request, String authorId) {
         Member author = memberFinder.getMemberWithLockOrThrow(authorId);
 
-        if (author.isAdmin()) {
-            log.warn("Admin user attempted to create post via user endpoint. userId={}", authorId);
-            throw new ApplicationException(PostErrorCode.POST_ACCESS_DENIED);
-        }
+        // !! 관리자 차단 로직 제거 !!
+        // if (author.isAdmin()) {
+        //      log.warn("Admin user attempted to create post via user endpoint. userId={}", authorId);
+        //      throw new ApplicationException(PostErrorCode.POST_ACCESS_DENIED, "Admins must use the admin endpoint.");
+        // }
 
+        // 부스 계정 처리 (기존 로직 유지)
         if (author.isBooth()) {
             if (postRepository.countByAuthorIdAndStatus(authorId, PostStatus.ACTIVE) >= 1) {
                 throw new ApplicationException(PostErrorCode.BOOTH_POST_MAXIMUM_EXCEED);
@@ -69,16 +71,29 @@ public class PostCreationService {
             return PostCreateResponse.from(savedBoothPost);
         }
 
+        // 일반 사용자 및 관리자 공통 처리 로직 시작
         requireActive(author);
 
-        postRateLimiter.checkRateLimit(authorId);
+        // 관리자가 아닌 경우에만 속도 제한 적용 (관리자는 제한 없음)
+        if (!author.isAdmin()) {
+            postRateLimiter.checkRateLimit(authorId);
+        }
 
-        long existingPostCount = postRepository.countByAuthorIdAndStatus(authorId,
-            PostStatus.ACTIVE);
-        if (existingPostCount >= MAX_POST_COUNT_PER_USER) {
-            Optional<Post> oldestPost = postRepository.findFirstByAuthorIdAndStatusOrderByCreatedDateAsc(
-                authorId, PostStatus.ACTIVE);
-            oldestPost.ifPresent(Post::softDeleteByAdmin);
+        // 관리자가 아닌 경우에만 게시글 수 제한 적용 (관리자는 제한 없음)
+        long existingPostCount = 0;
+        if (!author.isAdmin()) {
+            existingPostCount = postRepository.countByAuthorIdAndStatus(authorId,
+                PostStatus.ACTIVE);
+            if (existingPostCount >= MAX_POST_COUNT_PER_USER) {
+                Optional<Post> oldestPost = postRepository.findFirstByAuthorIdAndStatusOrderByCreatedDateAsc(
+                    authorId, PostStatus.ACTIVE);
+                // 일반 사용자 글만 만료 처리 (관리자 글은 건드리지 않음)
+                oldestPost.ifPresent(post -> {
+                    if (!post.getAuthorId().startsWith("admin")) { // 방어 로직 추가
+                        post.markAsExpired(); // 상태 변경 (혹은 softDeleteByAdmin 등 정책에 맞게)
+                    }
+                });
+            }
         }
 
         boolean isAnonymous = request.isAnonymous() != null && request.isAnonymous();
@@ -90,7 +105,8 @@ public class PostCreationService {
             originalS2TokenId);
 
         Location finalLocation = originalLocation;
-        if (request.isRandomLocationEnabled() && staticCloud.isEmpty()) {
+        // 관리자가 아니고, 랜덤 위치 옵션 활성화 시 + 정적 구름 아닐 때만 랜덤화
+        if (!author.isAdmin() && request.isRandomLocationEnabled() && staticCloud.isEmpty()) {
             finalLocation = locationRandomizer.randomize(originalLocation);
         }
 
@@ -118,15 +134,25 @@ public class PostCreationService {
 
         Post savedPost = postRepository.save(createdPost);
 
-        postRateLimiter.blockUser(authorId);
+        // 관리자가 아닌 경우에만 속도 제한 블록 적용
+        if (!author.isAdmin()) {
+            postRateLimiter.blockUser(authorId);
+        }
 
+        // 알림 봇 댓글 추가 (관리자 여부 상관없이 추가?) -> 현재 로직 유지
         long currentPostCount = existingPostCount < MAX_POST_COUNT_PER_USER ? existingPostCount + 1
             : MAX_POST_COUNT_PER_USER;
-        String notifyContent = String.format(
-            "⚙\uFE0F 게시글 (%d/%d) · 5개 초과시 가장 오래된 게시글 삭제" +
-                "\n⚙\uFE0F 24시간 후 게시글은 자동 삭제됩니다.",
-            currentPostCount,
-            MAX_POST_COUNT_PER_USER);
+        // 관리자는 post count 계산이 다를 수 있으므로 분기 처리 또는 메시지 수정 필요
+        String notifyContent;
+        if (author.isAdmin()) {
+            notifyContent = "⚙\uFE0F 관리자 게시글 · 24시간 후 자동 삭제되지 않습니다.";
+        } else {
+            notifyContent = String.format(
+                "⚙\uFE0F 게시글 (%d/%d) · 5개 초과시 가장 오래된 게시글 삭제" +
+                    "\n⚙\uFE0F 24시간 후 게시글은 자동 삭제됩니다.",
+                currentPostCount,
+                MAX_POST_COUNT_PER_USER);
+        }
         notifyBotCommentService.notifyByComment(notifyContent, savedPost);
 
         eventPublisher.publishEvent(new PostCreatedEvent(savedPost.getId(), request.fileKeyList()));
@@ -142,6 +168,8 @@ public class PostCreationService {
             return createPostInDynamicCloud(command, cloudAfterLock.get());
         }
 
+        // 관리자 글은 동적 구름 생성 조건 카운트에서 제외할지 여부 결정 필요
+        // 현재: 관리자 글도 카운트에 포함하여 동적 구름 생성 판단
         int totalPostCount = existingPostsInCell.size() + 1;
         if (totalPostCount <= DYNAMIC_CLOUD_CREATION_THRESHOLD) {
             return createStandalonePost(command);
@@ -185,10 +213,10 @@ public class PostCreationService {
         );
     }
 
-    // Helper specifically for Booths (no infoText, no customNickname)
     private Post createNonExpiredStandaloneForBooth(PostCreateRequest request, String authorId) {
         String s2TokenId = cellService.generateS2TokenIdFrom(request.latitude(),
             request.longitude());
+        // Booth post creation doesn't need infoText or customNickname
         return Post.createNonExpiredStandalone(
             Location.create(request.latitude(), request.longitude()),
             s2TokenId,
