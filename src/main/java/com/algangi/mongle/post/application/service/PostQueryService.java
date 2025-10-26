@@ -1,22 +1,5 @@
 package com.algangi.mongle.post.application.service;
 
-import com.algangi.mongle.post.presentation.mapper.PostResponseMapper;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import com.algangi.mongle.post.event.MemberViewedPostEvent;
-import com.algangi.mongle.postViewLog.application.service.PostViewLogService;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-
 import com.algangi.mongle.block.application.service.BlockQueryService;
 import com.algangi.mongle.dynamicCloud.domain.repository.DynamicCloudRepository;
 import com.algangi.mongle.file.application.dto.PresignedUrl;
@@ -29,12 +12,15 @@ import com.algangi.mongle.post.domain.model.Post;
 import com.algangi.mongle.post.domain.model.PostFile;
 import com.algangi.mongle.post.domain.model.PostStatus;
 import com.algangi.mongle.post.domain.repository.PostQueryRepository;
+import com.algangi.mongle.post.event.MemberViewedPostEvent;
 import com.algangi.mongle.post.event.PostViewedEvent;
 import com.algangi.mongle.post.exception.PostErrorCode;
 import com.algangi.mongle.post.presentation.dto.PostDetailResponse;
 import com.algangi.mongle.post.presentation.dto.PostListRequest;
 import com.algangi.mongle.post.presentation.dto.PostListResponse;
 import com.algangi.mongle.post.presentation.dto.PostSort;
+import com.algangi.mongle.post.presentation.mapper.PostResponseMapper;
+import com.algangi.mongle.postViewLog.application.service.PostViewLogService;
 import com.algangi.mongle.reaction.application.service.ReactionQueryService;
 import com.algangi.mongle.reaction.domain.model.ReactionType;
 import com.algangi.mongle.reaction.domain.model.TargetType;
@@ -42,8 +28,17 @@ import com.algangi.mongle.staticCloud.repository.StaticCloudRepository;
 import com.algangi.mongle.stats.application.dto.PostStats;
 import com.algangi.mongle.stats.application.service.ContentStatsService;
 import com.algangi.mongle.stats.application.service.StatsQueryService;
-
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.time.Instant;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -94,21 +89,18 @@ public class PostQueryService {
         Map<String, List<String>> photoUrlsMap = getPhotoUrlsForPosts(postsOnPage);
 
         Map<String, ReactionType> myReactionsMap = reactionQueryService.getMyReactions(
-            TargetType.POST,
-            postIds,
-            currentMemberId
-        );
+            TargetType.POST, postIds, currentMemberId);
 
         List<PostListResponse.PostSummary> summaries = postsOnPage.stream().map(post -> {
-            Member author = authors.get(post.getAuthorId()); // 작성자 정보 가져오기 (Nullable)
+            Member author = authors.get(post.getAuthorId());
             List<String> photoUrlList = photoUrlsMap.getOrDefault(post.getId(),
-                Collections.emptyList()); // 사진 URL 목록 가져오기
-            PostStats stats = statsMap.getOrDefault(post.getId(), PostStats.empty()); // 통계 정보 가져오기
-            ReactionType myReaction = myReactionsMap.get(post.getId()); // 내 리액션 정보 가져오기
-            String myReactionStr = (myReaction != null) ? myReaction.name() : null; // 문자열로 변환
+                Collections.emptyList());
+            PostStats stats = statsMap.getOrDefault(post.getId(), PostStats.empty());
+            ReactionType myReaction = myReactionsMap.get(post.getId());
+            String myReactionStr = (myReaction != null) ? myReaction.name() : null;
 
-            // 매퍼 호출! 필요한 정보를 모두 넘겨주면 끝
-            return postResponseMapper.toPostSummary(post, author, photoUrlList, stats, myReactionStr);
+            return postResponseMapper.toPostSummary(post, author, photoUrlList, stats,
+                myReactionStr);
         }).toList();
 
         String nextCursor = createNextCursor(postsOnPage, hasNext, request.sortBy());
@@ -121,11 +113,16 @@ public class PostQueryService {
         Post post = postFinder.getPostOrThrow(postId);
 
         if (post.getStatus() == PostStatus.DELETED_BY_USER
-            || post.getStatus() == PostStatus.DELETED_BY_ADMIN) {
+            || post.getStatus() == PostStatus.DELETED_BY_ADMIN
+            || post.getStatus() == PostStatus.DELETED_BY_WITHDRAWAL) {
             return PostDetailResponse.deleted();
         }
 
-        Member author = memberFinder.getMemberOrThrow(post.getAuthorId());
+        Member author = null;
+        if (post.getAuthorId() != null) {
+            author = memberFinder.findMembersByIds(List.of(post.getAuthorId())).stream().findFirst()
+                .orElse(null);
+        }
 
         contentStatsService.incrementPostViewCount(postId);
         eventPublisher.publishEvent(new PostViewedEvent(postId));
@@ -136,7 +133,6 @@ public class PostQueryService {
             } catch (Exception e) {
                 log.warn("Failed to record view in Redis.", e);
             }
-
             eventPublisher.publishEvent(new MemberViewedPostEvent(currentMemberId, postId));
         }
 
@@ -144,34 +140,11 @@ public class PostQueryService {
             .getOrDefault(postId, PostStats.empty());
 
         Map<String, ReactionType> myReactionsMap = reactionQueryService.getMyReactions(
-            TargetType.POST,
-            List.of(postId),
-            currentMemberId
-        );
+            TargetType.POST, List.of(postId), currentMemberId);
         ReactionType myReaction = myReactionsMap.get(postId);
         String myReactionStr = (myReaction != null) ? myReaction.name() : null;
 
-        PostDetailResponse.Author authorDto;
-        boolean isAnonymous = post.isAnonymous();
-
-        if (isAnonymous) {
-            authorDto = new PostDetailResponse.Author(
-                    author.getMemberId(),
-                    "익명의 몽글러",
-                    null
-            );
-        } else {
-            String profileImageUrl = null;
-            if (post.getStatus() == PostStatus.ACTIVE && author.getProfileImage() != null) {
-                profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage()).url();
-            }
-
-            authorDto = new PostDetailResponse.Author(
-                author.getMemberId(),
-                author.getNickname(),
-                profileImageUrl
-            );
-        }
+        PostDetailResponse.Author authorDto = createDetailAuthorDto(post, author);
 
         List<String> photoKeys = post.getPostFiles().stream()
             .map(PostFile::getFileKey)
@@ -187,6 +160,39 @@ public class PostQueryService {
 
         return PostDetailResponse.from(post, authorDto, stats, photoUrls, videoUrls, myReactionStr);
     }
+
+    private PostDetailResponse.Author createDetailAuthorDto(Post post, Member author) {
+        String customNickname = post.getCustomNickname();
+        boolean isAnonymous = post.isAnonymous();
+        String authorId = null;
+        String nickname = "익명의 몽글러";
+        String profileImageUrl = null;
+
+        if (author != null) {
+            authorId = author.getMemberId();
+            if (StringUtils.hasText(customNickname)) {
+                nickname = customNickname;
+            } else if (isAnonymous) {
+                nickname = "익명의 몽글러";
+            } else {
+                nickname = author.getNickname();
+                if (post.getStatus() == PostStatus.ACTIVE && author.getProfileImage() != null) {
+                    try {
+                        profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage())
+                            .url();
+                    } catch (Exception e) {
+                        log.warn("Failed to issue view URL for profile image: {}",
+                            author.getProfileImage(), e);
+                    }
+                }
+            }
+        } else if (StringUtils.hasText(customNickname)) {
+            nickname = customNickname;
+        }
+
+        return new PostDetailResponse.Author(authorId, nickname, profileImageUrl);
+    }
+
 
     private void validateCloudExists(PostListRequest request) {
         try {
@@ -208,13 +214,18 @@ public class PostQueryService {
     }
 
     private Map<String, Member> getAuthors(List<Post> posts) {
-        List<String> authorIds = posts.stream().map(Post::getAuthorId).distinct().toList();
+        List<String> authorIds = posts.stream()
+            .map(Post::getAuthorId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
         if (authorIds.isEmpty()) {
             return Collections.emptyMap();
         }
         return memberFinder.findMembersByIds(authorIds).stream()
             .collect(Collectors.toMap(Member::getMemberId, Function.identity()));
     }
+
 
     private Map<String, List<String>> getPhotoUrlsForPosts(List<Post> posts) {
         Map<String, List<String>> postIdToPhotoKeysMap = posts.stream()
@@ -287,8 +298,9 @@ public class PostQueryService {
         PostSort finalSort = (sort == null) ? PostSort.ranking_score : sort;
 
         if (finalSort == PostSort.ranking_score) {
+            Double score = lastPost.getRankingScore() != null ? lastPost.getRankingScore() : 0.0;
             return String.join("_",
-                String.valueOf(lastPost.getRankingScore()),
+                String.valueOf(score),
                 formattedDate,
                 lastPost.getId());
         } else {
@@ -298,3 +310,4 @@ public class PostQueryService {
         }
     }
 }
+

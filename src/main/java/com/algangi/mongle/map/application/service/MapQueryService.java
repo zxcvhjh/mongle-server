@@ -1,23 +1,9 @@
 package com.algangi.mongle.map.application.service;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import com.algangi.mongle.postViewLog.application.service.PostViewLogService;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.algangi.mongle.block.application.service.BlockQueryService;
 import com.algangi.mongle.dynamicCloud.domain.model.DynamicCloud;
 import com.algangi.mongle.dynamicCloud.domain.repository.DynamicCloudRepository;
+import com.algangi.mongle.file.application.service.ViewUrlIssueService;
 import com.algangi.mongle.global.infrastructure.S2CellService;
 import com.algangi.mongle.global.util.S2PolygonConverter;
 import com.algangi.mongle.map.presentation.dto.MapObjectsRequest;
@@ -27,12 +13,24 @@ import com.algangi.mongle.member.domain.model.Member;
 import com.algangi.mongle.post.domain.model.Post;
 import com.algangi.mongle.post.domain.model.PostStatus;
 import com.algangi.mongle.post.domain.repository.PostQueryRepository;
+import com.algangi.mongle.postViewLog.application.service.PostViewLogService;
 import com.algangi.mongle.staticCloud.domain.model.StaticCloud;
 import com.algangi.mongle.staticCloud.repository.StaticCloudRepository;
-import com.algangi.mongle.file.application.service.ViewUrlIssueService;
-
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.Objects;
 
 @Service
 @Slf4j
@@ -73,7 +71,7 @@ public class MapQueryService {
 
         List<String> postIdsToCheck = grains.stream().map(Post::getId).toList();
         Set<String> viewedPostIds = (!StringUtils.hasText(memberId) || postIdsToCheck.isEmpty())
-            ? java.util.Collections.emptySet()
+            ? Collections.emptySet()
             : postViewLogService.findViewedPostIdsInList(memberId, postIdsToCheck);
 
         List<StaticCloud> staticClouds = staticCloudRepository.findCloudsInCells(s2cellTokens);
@@ -90,40 +88,15 @@ public class MapQueryService {
         List<MapObjectsResponse.Grain> grainDtos = grains.stream()
             .map(post -> {
                 Member author = authors.get(post.getAuthorId());
+                boolean isGrain =
+                    post.getStaticCloudId() == null && post.getDynamicCloudId() == null;
+                String infoText = isGrain ? post.getInfoText() : null;
 
-                boolean isAnonymous = post.isAnonymous();
-                MapObjectsResponse.Grain.Author authorDto;
-
-                if (author == null) {
-                    authorDto = new MapObjectsResponse.Grain.Author(null, "(알 수 없음)", null);
-                } else if (isAnonymous) {
-                    authorDto = new MapObjectsResponse.Grain.Author(author.getMemberId(), "익명의 몽글러",
-                        null);
-                } else {
-                    String profileImageUrl = null;
-                    if (post.getStatus() == PostStatus.ACTIVE && author.getProfileImage() != null) {
-                        try {
-                            profileImageUrl = viewUrlIssueService.issueViewUrl(
-                                author.getProfileImage()).url();
-                        } catch (Exception e) {
-                            log.warn("Failed to issue view URL for profile image key {}: {}",
-                                author.getProfileImage(), e.getMessage());
-                        }
-                    }
-                    authorDto = new MapObjectsResponse.Grain.Author(author.getMemberId(),
-                        author.getNickname(), profileImageUrl);
-                }
+                MapObjectsResponse.Grain.Author authorDto = createAuthorDto(post, author);
 
                 boolean isViewed = viewedPostIds.contains(post.getId());
-                boolean isPostCreatedRecently =
-                    post.getCreatedDate() != null && !post.getCreatedDate()
-                        .isBefore(thirtyMinutesAgo);
+                boolean isPostCreatedRecently = !post.getCreatedDate().isBefore(thirtyMinutesAgo);
                 boolean isRecent = isLoggedIn && !isViewed && isPostCreatedRecently;
-
-                String infoText =
-                    (post.getStaticCloudId() == null && post.getDynamicCloudId() == null)
-                        ? post.getInfoText()
-                        : null;
 
                 return new MapObjectsResponse.Grain(
                     post.getId(),
@@ -159,6 +132,39 @@ public class MapQueryService {
         return new MapObjectsResponse(grainDtos, staticCloudDtos, dynamicCloudDtos);
     }
 
+    private MapObjectsResponse.Grain.Author createAuthorDto(Post post, Member author) {
+        String customNickname = post.getCustomNickname();
+        boolean isAnonymous = post.isAnonymous();
+        String authorId = null;
+        String nickname = "익명의 몽글러";
+        String profileImageUrl = null;
+
+        if (author != null) {
+            authorId = author.getMemberId();
+            if (StringUtils.hasText(customNickname)) {
+                nickname = customNickname;
+            } else if (isAnonymous) {
+                nickname = "익명의 몽글러";
+            } else {
+                nickname = author.getNickname();
+                if (post.getStatus() == PostStatus.ACTIVE && author.getProfileImage() != null) {
+                    try {
+                        profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage())
+                            .url();
+                    } catch (Exception e) {
+                        log.warn("Failed to issue view URL for profile image key in map query: {}",
+                            author.getProfileImage(), e);
+                    }
+                }
+            }
+        } else if (StringUtils.hasText(customNickname)) {
+            nickname = customNickname;
+        }
+
+        return new MapObjectsResponse.Grain.Author(authorId, nickname, profileImageUrl);
+    }
+
+
     private Map<String, Member> getAuthors(List<Post> grains) {
         if (grains.isEmpty()) {
             return Collections.emptyMap();
@@ -177,7 +183,6 @@ public class MapQueryService {
             .collect(Collectors.toMap(Member::getMemberId, Function.identity()));
     }
 
-
     private Map<Long, Long> getStaticCloudPostCounts(List<StaticCloud> clouds) {
         if (clouds.isEmpty()) {
             return Collections.emptyMap();
@@ -194,3 +199,4 @@ public class MapQueryService {
         return postQueryRepository.countPostsByDynamicCloudIds(cloudIds);
     }
 }
+

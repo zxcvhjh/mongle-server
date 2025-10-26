@@ -15,23 +15,24 @@ public record AdminPostCreateRequest(
     Double longitude,
 
     @NotBlank(message = "게시글 내용은 필수값입니다.")
-    @Size(max = 2000)
+    @Size(max = 2000, message = "게시글 내용은 2000자를 초과할 수 없습니다.")
     String content,
 
-    @Size(max = 500, message = "정보 텍스트는 500자를 초과할 수 없습니다.")
+    @Size(max = 2000, message = "infoText는 2000자를 초과할 수 없습니다.")
     String infoText,
 
     List<String> fileKeyList,
 
-    Boolean isRandomLocationEnabled,
+    boolean isRandomLocationEnabled,
 
-    Boolean isAnonymous
+    Boolean isAnonymous,
+
+    @Size(max = 255, message = "커스텀 닉네임은 255자를 초과할 수 없습니다.")
+    String customNickname
 ) {
 
     public AdminPostCreateRequest {
         fileKeyList = Optional.ofNullable(fileKeyList).orElse(Collections.emptyList());
-        isRandomLocationEnabled = Optional.ofNullable(isRandomLocationEnabled).orElse(false);
-        isAnonymous = Optional.ofNullable(isAnonymous).orElse(false);
     }
 }
 

@@ -1,12 +1,5 @@
 package com.algangi.mongle.post.application.service;
 
-import java.util.List;
-import java.util.Optional;
-
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.algangi.mongle.comment.application.service.NotifyBotCommentService;
 import com.algangi.mongle.dynamicCloud.domain.model.DynamicCloud;
 import com.algangi.mongle.dynamicCloud.domain.repository.DynamicCloudRepository;
@@ -15,7 +8,6 @@ import com.algangi.mongle.global.domain.service.CellService;
 import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.member.application.service.MemberFinder;
 import com.algangi.mongle.member.domain.model.Member;
-import com.algangi.mongle.member.domain.model.MemberRole;
 import com.algangi.mongle.member.domain.model.MemberStatus;
 import com.algangi.mongle.member.exception.MemberErrorCode;
 import com.algangi.mongle.post.application.dto.PostCreationCommand;
@@ -26,14 +18,18 @@ import com.algangi.mongle.post.domain.repository.PostRepository;
 import com.algangi.mongle.post.domain.service.LocationRandomizer;
 import com.algangi.mongle.post.event.PostCreatedEvent;
 import com.algangi.mongle.post.exception.PostErrorCode;
-import com.algangi.mongle.post.presentation.dto.AdminPostCreateRequest;
 import com.algangi.mongle.post.presentation.dto.PostCreateRequest;
 import com.algangi.mongle.post.presentation.dto.PostCreateResponse;
 import com.algangi.mongle.staticCloud.domain.model.StaticCloud;
 import com.algangi.mongle.staticCloud.repository.StaticCloudRepository;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -58,32 +54,19 @@ public class PostCreationService {
         Member author = memberFinder.getMemberWithLockOrThrow(authorId);
 
         if (author.isAdmin()) {
-            log.warn("관리자 계정({})이 일반 사용자용 게시글 생성 API를 호출했습니다. 관리자용 API 사용을 권장합니다.", authorId);
-            AdminPostCreateRequest adminRequest = new AdminPostCreateRequest(
-                request.latitude(), request.longitude(), request.content(),
-                null,
-                request.fileKeyList(), request.isRandomLocationEnabled(), request.isAnonymous()
-            );
-            return createAdminPost(adminRequest, authorId);
+            log.warn("Admin user attempted to create post via user endpoint. userId={}", authorId);
+            throw new ApplicationException(PostErrorCode.POST_ACCESS_DENIED);
         }
 
         if (author.isBooth()) {
             if (postRepository.countByAuthorIdAndStatus(authorId, PostStatus.ACTIVE) >= 1) {
                 throw new ApplicationException(PostErrorCode.BOOTH_POST_MAXIMUM_EXCEED);
             }
-            Post boothPost = createNonExpiredStandalone(
-                Location.create(request.latitude(), request.longitude()),
-                cellService.generateS2TokenIdFrom(request.latitude(), request.longitude()),
-                request.content(),
-                authorId,
-                Boolean.TRUE.equals(request.isAnonymous()),
-                null
-            );
-
-            postRepository.save(boothPost);
+            Post boothPost = createNonExpiredStandaloneForBooth(request, authorId);
+            Post savedBoothPost = postRepository.save(boothPost);
             eventPublisher.publishEvent(
-                new PostCreatedEvent(boothPost.getId(), request.fileKeyList()));
-            return PostCreateResponse.from(boothPost);
+                new PostCreatedEvent(savedBoothPost.getId(), request.fileKeyList()));
+            return PostCreateResponse.from(savedBoothPost);
         }
 
         requireActive(author);
@@ -95,10 +78,10 @@ public class PostCreationService {
         if (existingPostCount >= MAX_POST_COUNT_PER_USER) {
             Optional<Post> oldestPost = postRepository.findFirstByAuthorIdAndStatusOrderByCreatedDateAsc(
                 authorId, PostStatus.ACTIVE);
-            oldestPost.ifPresent(Post::softDeleteByUser);
+            oldestPost.ifPresent(Post::softDeleteByAdmin);
         }
 
-        boolean isAnonymous = Boolean.TRUE.equals(request.isAnonymous());
+        boolean isAnonymous = request.isAnonymous() != null && request.isAnonymous();
 
         Location originalLocation = Location.create(request.latitude(), request.longitude());
         String originalS2TokenId = cellService.generateS2TokenIdFrom(originalLocation.getLatitude(),
@@ -107,7 +90,7 @@ public class PostCreationService {
             originalS2TokenId);
 
         Location finalLocation = originalLocation;
-        if (Boolean.TRUE.equals(request.isRandomLocationEnabled()) && staticCloud.isEmpty()) {
+        if (request.isRandomLocationEnabled() && staticCloud.isEmpty()) {
             finalLocation = locationRandomizer.randomize(originalLocation);
         }
 
@@ -137,51 +120,22 @@ public class PostCreationService {
 
         postRateLimiter.blockUser(authorId);
 
-        long currentPostCount =
-            existingPostCount + 1 <= MAX_POST_COUNT_PER_USER ? existingPostCount + 1
-                : MAX_POST_COUNT_PER_USER;
-        String content = String.format(
-            "⚙\uFE0F 게시글 (%d/%d) · 5개 초과시 가장 오래된 게시글 삭제"
-                + "\n⚙\uFE0F 24시간 후 게시글은 자동 삭제됩니다.",
+        long currentPostCount = existingPostCount < MAX_POST_COUNT_PER_USER ? existingPostCount + 1
+            : MAX_POST_COUNT_PER_USER;
+        String notifyContent = String.format(
+            "⚙\uFE0F 게시글 (%d/%d) · 5개 초과시 가장 오래된 게시글 삭제" +
+                "\n⚙\uFE0F 24시간 후 게시글은 자동 삭제됩니다.",
             currentPostCount,
             MAX_POST_COUNT_PER_USER);
-        notifyBotCommentService.notifyByComment(content, savedPost);
+        notifyBotCommentService.notifyByComment(notifyContent, savedPost);
 
         eventPublisher.publishEvent(new PostCreatedEvent(savedPost.getId(), request.fileKeyList()));
         return PostCreateResponse.from(savedPost);
     }
-
-
-    @Transactional
-    public PostCreateResponse createAdminPost(AdminPostCreateRequest request, String authorId) {
-        Member author = memberFinder.getMemberOrThrow(authorId);
-        if (author.getMemberRole() != MemberRole.ADMIN) {
-            throw new ApplicationException(MemberErrorCode.MEMBER_IS_BANNED);
-        }
-
-        Location location = Location.create(request.latitude(), request.longitude());
-        String s2TokenId = cellService.generateS2TokenIdFrom(location.getLatitude(),
-            location.getLongitude());
-
-        Post adminPost = Post.createNonExpiredStandalone(
-            location,
-            s2TokenId,
-            request.content(),
-            authorId,
-            request.isAnonymous(),
-            request.infoText()
-        );
-
-        Post savedPost = postRepository.save(adminPost);
-
-        eventPublisher.publishEvent(new PostCreatedEvent(savedPost.getId(), request.fileKeyList()));
-
-        return PostCreateResponse.from(savedPost);
-    }
-
 
     private Post handleNewPost(PostCreationCommand command, String s2TokenId) {
         List<Post> existingPostsInCell = postRepository.findByS2TokenIdWithLock(s2TokenId);
+
         Optional<DynamicCloud> cloudAfterLock = dynamicCloudRepository.findActiveByS2TokenId(
             s2TokenId);
         if (cloudAfterLock.isPresent()) {
@@ -231,21 +185,18 @@ public class PostCreationService {
         );
     }
 
-    private Post createNonExpiredStandalone(
-        Location location,
-        String s2TokenId,
-        String content,
-        String authorId,
-        boolean isAnonymous,
-        String infoText
-    ) {
+    // Helper specifically for Booths (no infoText, no customNickname)
+    private Post createNonExpiredStandaloneForBooth(PostCreateRequest request, String authorId) {
+        String s2TokenId = cellService.generateS2TokenIdFrom(request.latitude(),
+            request.longitude());
         return Post.createNonExpiredStandalone(
-            location,
+            Location.create(request.latitude(), request.longitude()),
             s2TokenId,
-            content,
+            request.content(),
             authorId,
-            isAnonymous,
-            infoText
+            false,
+            null,
+            null
         );
     }
 
