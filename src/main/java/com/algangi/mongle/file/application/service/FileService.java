@@ -1,18 +1,18 @@
 package com.algangi.mongle.file.application.service;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.algangi.mongle.file.application.dto.FileMetadata;
 import com.algangi.mongle.file.application.dto.PresignedUrl;
+import com.algangi.mongle.file.application.util.FileOptimizationUtils;
 import com.algangi.mongle.file.domain.FileHandler;
 import com.algangi.mongle.file.domain.FileType;
 import com.algangi.mongle.file.exception.FileErrorCode;
@@ -23,6 +23,8 @@ import com.algangi.mongle.file.presentation.dto.ViewUrlResponse;
 import com.algangi.mongle.global.exception.ApplicationException;
 
 import jakarta.annotation.PostConstruct;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -33,6 +35,7 @@ public class FileService {
     private final List<FileHandler> handlers;
     private final StorageService storageService;
     private final ViewUrlIssueService viewUrlIssueService;
+    private final FileOptimizationUtils fileOptimizationUtils;
     @Value("${mongle.aws.s3.presigned-url-expiration-minutes}")
     private long expirationMinutes;
 
@@ -51,7 +54,8 @@ public class FileService {
             .map(file -> {
                 String fileKey = handler.generateFileKey(file.fileName());
                 String url = storageService.issueUploadPresignedUrl(fileKey, expirationMinutes);
-                Instant expiresAt = Instant.now().plus(expirationMinutes, ChronoUnit.MINUTES); // <<< 수정
+                Instant expiresAt = Instant.now()
+                    .plus(expirationMinutes, ChronoUnit.MINUTES); // <<< 수정
                 return new PresignedUrl(fileKey, url, expiresAt);
             }).toList();
 
@@ -66,7 +70,21 @@ public class FileService {
         if (fileKeys == null || fileKeys.isEmpty()) {
             return;
         }
-        fileKeys.forEach(storageService::changeTagToPermanent);
+
+        List<String> allKeysToCommit = fileKeys.stream()
+            .flatMap(key -> {
+                if (fileOptimizationUtils.isOptimizableImage(key)) {
+                    // .png와 .webp 키 모두 반환
+                    return Stream.of(key, fileOptimizationUtils.getOptimizedFileKey(key));
+                } else {
+                    // 원본 키(비디오 등)만 반환
+                    return Stream.of(key);
+                }
+            })
+            .distinct()
+            .toList();
+
+        allKeysToCommit.parallelStream().forEach(storageService::changeTagToPermanent);
     }
 
     public void deletePermanentFiles(List<String> fileKeys) {

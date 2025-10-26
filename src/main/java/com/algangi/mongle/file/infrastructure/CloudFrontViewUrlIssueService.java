@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import com.algangi.mongle.file.application.dto.PresignedUrl;
 import com.algangi.mongle.file.application.service.ViewUrlIssueService;
+import com.algangi.mongle.file.application.util.FileOptimizationUtils;
 import com.algangi.mongle.global.config.CloudFrontProperties;
 import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.global.exception.AwsErrorCode;
@@ -29,11 +30,14 @@ public class CloudFrontViewUrlIssueService implements ViewUrlIssueService {
     public static final String DIR_DELIMITER = "/";
     private final CloudFrontProperties cloudFrontProperties;
     private final CloudFrontUtilities cloudFrontUtilities;
+    private final FileOptimizationUtils fileOptimizationUtils;
     private PrivateKey privateKey;
 
-    public CloudFrontViewUrlIssueService(CloudFrontProperties cloudFrontProperties) {
+    public CloudFrontViewUrlIssueService(CloudFrontProperties cloudFrontProperties,
+        FileOptimizationUtils fileOptimizationUtils) {
         this.cloudFrontProperties = cloudFrontProperties;
         this.cloudFrontUtilities = CloudFrontUtilities.create();
+        this.fileOptimizationUtils = fileOptimizationUtils;
     }
 
     @PostConstruct
@@ -52,8 +56,14 @@ public class CloudFrontViewUrlIssueService implements ViewUrlIssueService {
             .toList();
     }
 
+
     @Override
     public PresignedUrl issueViewUrl(String fileKey) {
+        // TODO: originUrl, webpUrl 둘 다 반환 후 안드로이드단에서 폴백하도록 변경
+        if (fileOptimizationUtils.isOptimizableImage(fileKey)) {
+            fileKey = fileOptimizationUtils.getOptimizedFileKey(fileKey);
+        }
+
         String resourceUrl = HTTPS + cloudFrontProperties.domain() + DIR_DELIMITER + fileKey;
         Instant expirationTime = Instant.now()
             .plus(cloudFrontProperties.expirationMinutes(), ChronoUnit.MINUTES);
