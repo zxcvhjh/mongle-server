@@ -5,6 +5,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -84,7 +85,6 @@ public class MapQueryService {
         Map<Long, Long> dynamicCloudPostCounts = getDynamicCloudPostCounts(dynamicClouds);
 
         Instant thirtyMinutesAgo = Instant.now().minus(30, ChronoUnit.MINUTES);
-
         boolean isLoggedIn = StringUtils.hasText(memberId);
 
         List<MapObjectsResponse.Grain> grainDtos = grains.stream()
@@ -95,7 +95,7 @@ public class MapQueryService {
                 MapObjectsResponse.Grain.Author authorDto;
 
                 if (author == null) {
-                    authorDto = new MapObjectsResponse.Grain.Author(null, "익명의 몽글러", null);
+                    authorDto = new MapObjectsResponse.Grain.Author(null, "(알 수 없음)", null);
                 } else if (isAnonymous) {
                     authorDto = new MapObjectsResponse.Grain.Author(author.getMemberId(), "익명의 몽글러",
                         null);
@@ -106,9 +106,8 @@ public class MapQueryService {
                             profileImageUrl = viewUrlIssueService.issueViewUrl(
                                 author.getProfileImage()).url();
                         } catch (Exception e) {
-                            log.warn(
-                                "Failed to issue view URL for profile image key in map query: {}",
-                                author.getProfileImage(), e);
+                            log.warn("Failed to issue view URL for profile image key {}: {}",
+                                author.getProfileImage(), e.getMessage());
                         }
                     }
                     authorDto = new MapObjectsResponse.Grain.Author(author.getMemberId(),
@@ -116,8 +115,15 @@ public class MapQueryService {
                 }
 
                 boolean isViewed = viewedPostIds.contains(post.getId());
-                boolean isPostCreatedRecently = !post.getCreatedDate().isBefore(thirtyMinutesAgo);
+                boolean isPostCreatedRecently =
+                    post.getCreatedDate() != null && !post.getCreatedDate()
+                        .isBefore(thirtyMinutesAgo);
                 boolean isRecent = isLoggedIn && !isViewed && isPostCreatedRecently;
+
+                String infoText =
+                    (post.getStaticCloudId() == null && post.getDynamicCloudId() == null)
+                        ? post.getInfoText()
+                        : null;
 
                 return new MapObjectsResponse.Grain(
                     post.getId(),
@@ -126,7 +132,7 @@ public class MapQueryService {
                     authorDto,
                     isViewed,
                     isRecent,
-                    null
+                    infoText
                 );
             })
             .toList();
@@ -159,12 +165,18 @@ public class MapQueryService {
         }
         List<String> authorIds = grains.stream()
             .map(Post::getAuthorId)
+            .filter(Objects::nonNull)
             .distinct()
             .toList();
+
+        if (authorIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
 
         return memberFinder.findMembersByIds(authorIds).stream()
             .collect(Collectors.toMap(Member::getMemberId, Function.identity()));
     }
+
 
     private Map<Long, Long> getStaticCloudPostCounts(List<StaticCloud> clouds) {
         if (clouds.isEmpty()) {
