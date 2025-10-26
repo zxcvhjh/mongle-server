@@ -1,5 +1,7 @@
 package com.algangi.mongle.member.presentation.controller;
 
+import com.algangi.mongle.member.presentation.dto.UpdateNicknameRequest;
+import com.algangi.mongle.member.presentation.dto.UpdateNicknameResponse;
 import com.algangi.mongle.member.presentation.dto.UpdateProfileImageRequest;
 import com.algangi.mongle.member.presentation.dto.UpdateProfileImageResponse;
 import jakarta.validation.Valid;
@@ -60,18 +62,25 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
-    /**
-     * 현재 로그인된 사용자의 프로필 이미지를 변경하거나 삭제합니다.
-     */
-    @PutMapping("/profile-image") // <<< 신규 엔드포인트 메소드
+    @PutMapping("/profile-image")
     public ResponseEntity<ApiResponse<UpdateProfileImageResponse>> updateProfileImage(
         @AuthenticationPrincipal CustomUserDetails userDetails,
         @Valid @RequestBody UpdateProfileImageRequest request
     ) {
         String userId = userDetails.userId();
-        // 실제 로직은 MemberProfileService에 위임할 예정
-        UpdateProfileImageResponse response = memberProfileService.updateProfileImage(userId, request.fileKey());
+        UpdateProfileImageResponse response = memberProfileService.updateProfileImage(userId,
+            request.fileKey());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
-
+    
+    @PutMapping("/nickname")
+    public ResponseEntity<ApiResponse<UpdateNicknameResponse>> updateNickname(
+        @AuthenticationPrincipal CustomUserDetails userDetails,
+        @Valid @RequestBody UpdateNicknameRequest request
+    ) {
+        String userId = userDetails.userId();
+        UpdateNicknameResponse response = memberProfileService.updateNickname(userId,
+            request.nickname());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 }
