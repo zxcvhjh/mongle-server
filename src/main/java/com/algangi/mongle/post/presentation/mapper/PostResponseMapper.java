@@ -6,10 +6,12 @@ import com.algangi.mongle.post.domain.model.Post;
 import com.algangi.mongle.post.domain.model.PostStatus;
 import com.algangi.mongle.post.presentation.dto.PostListResponse;
 import com.algangi.mongle.stats.application.dto.PostStats;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -18,39 +20,48 @@ public class PostResponseMapper {
 
     private final ViewUrlIssueService viewUrlIssueService;
 
-    // PostListResponse.PostSummary DTO로 변환하는 메서드
     public PostListResponse.PostSummary toPostSummary(
         Post post,
-        Member author, // Nullable
+        Member author,
         List<String> photoUrls,
         PostStats stats,
-        String myReaction // Nullable
+        String myReaction
     ) {
         boolean isAnonymous = post.isAnonymous();
+        String customNickname = post.getCustomNickname();
         PostListResponse.PostSummary.Author authorDto;
+        String authorId = null;
+        String nickname = "익명의 몽글러";
+        String profileImageUrl = null;
 
-        if (author == null) {
-            authorDto = new PostListResponse.PostSummary.Author(null, "익명의 몽글러", null);
-        } else if (isAnonymous) {
-            authorDto = new PostListResponse.PostSummary.Author(author.getMemberId(), "익명의 몽글러", null);
-        } else {
-            // 프로필 이미지 URL 생성 로직
-            String profileImageUrl = null;
-            if (post.getStatus() == PostStatus.ACTIVE && author.getProfileImage() != null) {
-                try {
-                    profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage()).url();
-                } catch (Exception e) {
-                    log.warn("Failed to issue view URL for profile image key in PostResponseMapper: {}", author.getProfileImage(), e);
-                    // 실패 시 null 유지
+        if (author != null) {
+            authorId = author.getMemberId();
+            if (StringUtils.hasText(customNickname)) {
+                nickname = customNickname;
+            } else if (isAnonymous) {
+                nickname = "익명의 몽글러";
+            } else {
+                nickname = author.getNickname();
+                if (post.getStatus() == PostStatus.ACTIVE && author.getProfileImage() != null) {
+                    try {
+                        profileImageUrl = viewUrlIssueService.issueViewUrl(author.getProfileImage())
+                            .url();
+                    } catch (Exception e) {
+                        log.warn(
+                            "Failed to issue view URL for profile image key in PostResponseMapper: {}",
+                            author.getProfileImage(), e);
+                    }
                 }
             }
-            authorDto = new PostListResponse.PostSummary.Author(author.getMemberId(), author.getNickname(), profileImageUrl);
+        } else if (StringUtils.hasText(customNickname)) {
+            nickname = customNickname;
         }
 
-        // 최종 PostSummary DTO 생성
+        authorDto = new PostListResponse.PostSummary.Author(authorId, nickname, profileImageUrl);
+
         return new PostListResponse.PostSummary(
             post.getId(),
-            authorDto, // 생성된 authorDto 사용
+            authorDto,
             post.getContent(),
             photoUrls,
             stats.likeCount(),
@@ -63,3 +74,4 @@ public class PostResponseMapper {
         );
     }
 }
+

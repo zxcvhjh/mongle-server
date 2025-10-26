@@ -7,13 +7,16 @@ public record AdminPostUpdateRequest(
     @Size(max = 2000, message = "게시글 내용은 2000자를 초과할 수 없습니다.")
     String content,
 
-    @Size(max = 500, message = "infoText는 500자를 초과할 수 없습니다.")
+    @Size(max = 2000, message = "infoText는 2000자를 초과할 수 없습니다.")
     String infoText,
 
     List<String> fileKeyList,
 
-    Boolean isAnonymous
+    Boolean isAnonymous,
+
+    @Size(max = 255, message = "커스텀 닉네임은 255자를 초과할 수 없습니다.")
+    String customNickname
 ) {
-    // fileKeyList는 null일 수 있음 (파일 변경 없을 때)
-    // infoText는 null일 수 있음 (infoText 제거 시)
+
 }
+

@@ -57,7 +57,8 @@ public class AdminPostService {
             request.content(),
             authorId,
             request.isAnonymous() != null && request.isAnonymous(),
-            request.infoText()
+            request.infoText(),
+            request.customNickname()
         );
 
         Post savedPost = postRepository.save(adminPost);
@@ -87,7 +88,12 @@ public class AdminPostService {
             .map(PostFile::getFileKey)
             .collect(Collectors.toList());
 
-        post.updateAdminDetails(request.content(), request.isAnonymous(), request.infoText());
+        post.updateAdminDetails(
+            request.content(),
+            request.isAnonymous(),
+            request.infoText(),
+            request.customNickname()
+        );
 
         List<String> finalFileKeys =
             request.fileKeyList() != null ? request.fileKeyList() : previousFileKeys;
@@ -95,6 +101,7 @@ public class AdminPostService {
         boolean filesChanged = !Objects.equals(previousFileKeys, finalFileKeys);
 
         if (filesChanged) {
+            post.markAsPending();
             PostUpdatedEvent event = new PostUpdatedEvent(postId, previousFileKeys, finalFileKeys);
             eventPublisher.publishEvent(event);
         } else {
@@ -116,7 +123,7 @@ public class AdminPostService {
 
         Post post = postFinder.getPostOrThrow(postId);
         post.softDeleteByAdmin();
-        
+
     }
 }
 
