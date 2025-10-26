@@ -1,6 +1,5 @@
 package com.algangi.mongle.post.application.service;
 
-import com.algangi.mongle.comment.application.service.NotifyBotCommentService;
 import com.algangi.mongle.global.domain.service.CellService;
 import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.member.application.service.MemberFinder;
@@ -36,7 +35,6 @@ public class AdminPostService {
     private final MemberFinder memberFinder;
     private final CellService cellService;
     private final ApplicationEventPublisher eventPublisher;
-    private final NotifyBotCommentService notifyBotCommentService;
     private final PostFinder postFinder;
 
     @Transactional
@@ -62,10 +60,6 @@ public class AdminPostService {
         );
 
         Post savedPost = postRepository.save(adminPost);
-
-        if (request.infoText() != null && !request.infoText().isBlank()) {
-            notifyBotCommentService.notifyByComment("📢 관리자 공지가 등록되었습니다.", savedPost);
-        }
 
         eventPublisher.publishEvent(new PostCreatedEvent(savedPost.getId(), request.fileKeyList()));
 
