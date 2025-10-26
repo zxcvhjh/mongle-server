@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.algangi.mongle.file.application.dto.PresignedUrl;
+import com.algangi.mongle.file.application.service.StorageService;
 import com.algangi.mongle.file.application.service.ViewUrlIssueService;
 import com.algangi.mongle.file.application.util.FileOptimizationUtils;
 import com.algangi.mongle.global.config.CloudFrontProperties;
@@ -31,13 +32,15 @@ public class CloudFrontViewUrlIssueService implements ViewUrlIssueService {
     private final CloudFrontProperties cloudFrontProperties;
     private final CloudFrontUtilities cloudFrontUtilities;
     private final FileOptimizationUtils fileOptimizationUtils;
+    private final StorageService storageService;
     private PrivateKey privateKey;
 
     public CloudFrontViewUrlIssueService(CloudFrontProperties cloudFrontProperties,
-        FileOptimizationUtils fileOptimizationUtils) {
+        FileOptimizationUtils fileOptimizationUtils, StorageService storageService) {
         this.cloudFrontProperties = cloudFrontProperties;
         this.cloudFrontUtilities = CloudFrontUtilities.create();
         this.fileOptimizationUtils = fileOptimizationUtils;
+        this.storageService = storageService;
     }
 
     @PostConstruct
@@ -60,13 +63,23 @@ public class CloudFrontViewUrlIssueService implements ViewUrlIssueService {
     @Override
     public PresignedUrl issueViewUrl(String fileKey) {
         // TODO: originUrl, webpUrl 둘 다 반환 후 안드로이드단에서 폴백하도록 변경
-        if (fileOptimizationUtils.isOptimizableImage(fileKey)) {
-            fileKey = fileOptimizationUtils.getOptimizedFileKey(fileKey);
-        }
-
-        String resourceUrl = HTTPS + cloudFrontProperties.domain() + DIR_DELIMITER + fileKey;
         Instant expirationTime = Instant.now()
             .plus(cloudFrontProperties.expirationMinutes(), ChronoUnit.MINUTES);
+
+        if (fileOptimizationUtils.isOptimizableImage(fileKey)) {
+            String optimizedFileKey = fileOptimizationUtils.getOptimizedFileKey(fileKey);
+            // TODO: 이후 안드로이드 단에서 검증하도록 변경
+            if (storageService.checkFileExists(optimizedFileKey)) {
+                //optimizedFileKey
+                return generateSignedViewUrl(optimizedFileKey, expirationTime);
+            }
+        }
+        //originalFileKey
+        return generateSignedViewUrl(fileKey, expirationTime);
+    }
+
+    private PresignedUrl generateSignedViewUrl(String fileKey, Instant expirationTime) {
+        String resourceUrl = HTTPS + cloudFrontProperties.domain() + DIR_DELIMITER + fileKey;
 
         try {
             CannedSignerRequest signerRequest = CannedSignerRequest.builder()
@@ -86,5 +99,4 @@ public class CloudFrontViewUrlIssueService implements ViewUrlIssueService {
                 .addErrorInfo("awsErrorMessage", e.getMessage());
         }
     }
-
 }
