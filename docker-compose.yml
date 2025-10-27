@@ -16,6 +16,10 @@ services:
     restart: on-failure
     volumes:
       - ./config/keys/private_key.pem:/app/keys/private_key.pem
+    logging:
+      driver: "journald"
+      options:
+        tag: "mongle-app-{{.Name}}-{{.ID}}"
 
   db:
     image: mysql:8.0
