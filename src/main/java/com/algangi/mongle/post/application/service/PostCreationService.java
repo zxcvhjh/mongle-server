@@ -139,21 +139,19 @@ public class PostCreationService {
             postRateLimiter.blockUser(authorId);
         }
 
-        // 알림 봇 댓글 추가 (관리자 여부 상관없이 추가?) -> 현재 로직 유지
-        long currentPostCount = existingPostCount < MAX_POST_COUNT_PER_USER ? existingPostCount + 1
-            : MAX_POST_COUNT_PER_USER;
-        // 관리자는 post count 계산이 다를 수 있으므로 분기 처리 또는 메시지 수정 필요
-        String notifyContent;
-        if (author.isAdmin()) {
-            notifyContent = "⚙\uFE0F 관리자 게시글 · 24시간 후 자동 삭제되지 않습니다.";
-        } else {
-            notifyContent = String.format(
+        // 알림 봇 댓글 추가 (관리자가 아닌 일반 사용자에게만)
+        if (!author.isAdmin()) {
+            long currentPostCount = existingPostCount < MAX_POST_COUNT_PER_USER ? existingPostCount + 1
+                : MAX_POST_COUNT_PER_USER;
+
+            String notifyContent = String.format(
                 "⚙\uFE0F 게시글 (%d/%d) · 5개 초과시 가장 오래된 게시글 삭제" +
-                    "\n⚙\uFE0F 24시간 후 게시글은 자동 삭제됩니다.",
+                    "\n⚙\uFE0F 24시간 후 게시글 자동 삭제",
                 currentPostCount,
                 MAX_POST_COUNT_PER_USER);
+
+            notifyBotCommentService.notifyByComment(notifyContent, savedPost);
         }
-        notifyBotCommentService.notifyByComment(notifyContent, savedPost);
 
         eventPublisher.publishEvent(new PostCreatedEvent(savedPost.getId(), request.fileKeyList()));
         return PostCreateResponse.from(savedPost);
