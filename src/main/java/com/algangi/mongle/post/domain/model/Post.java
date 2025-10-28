@@ -41,7 +41,7 @@ public class Post extends TimeBaseEntity {
     @Column(nullable = false, length = 2000)
     private String content;
 
-    @Column(length = 500)
+    @Column(length = 2000)
     private String infoText;
 
     @Column(nullable = false)
@@ -178,6 +178,10 @@ public class Post extends TimeBaseEntity {
         }
         this.infoText = infoText;
         this.customNickname = StringUtils.hasText(customNickname) ? customNickname : null;
+    }
+
+    public void updateInfoText(String newInfoText) {
+        this.infoText = newInfoText;
     }
 
 

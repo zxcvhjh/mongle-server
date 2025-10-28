@@ -7,6 +7,7 @@ import com.algangi.mongle.post.presentation.dto.AdminPostCreateRequest;
 import com.algangi.mongle.post.presentation.dto.AdminPostUpdateRequest;
 import com.algangi.mongle.post.presentation.dto.PostCreateResponse;
 import com.algangi.mongle.post.presentation.dto.PostUpdateResponse;
+import com.algangi.mongle.post.presentation.dto.UpdateInfoTextRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -45,6 +46,16 @@ public class AdminPostController {
         @PathVariable String postId,
         @AuthenticationPrincipal CustomUserDetails user) {
         adminPostService.deleteAdminPost(postId, user.userId());
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    @PatchMapping("/{postId}/info-text")
+    public ResponseEntity<ApiResponse<Void>> updatePostInfoText(
+        @PathVariable String postId,
+        @Valid @RequestBody UpdateInfoTextRequest request,
+        @AuthenticationPrincipal CustomUserDetails user) {
+
+        adminPostService.updatePostInfoText(postId, request, user.userId());
         return ResponseEntity.ok(ApiResponse.success());
     }
 }
