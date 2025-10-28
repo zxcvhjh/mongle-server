@@ -1,7 +1,6 @@
 package com.algangi.mongle.post.application.service;
 
 import com.algangi.mongle.global.domain.service.CellService;
-import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.member.application.service.MemberFinder;
 import com.algangi.mongle.member.domain.model.Member;
 import com.algangi.mongle.post.application.helper.PostFinder;
@@ -11,11 +10,11 @@ import com.algangi.mongle.post.domain.model.PostFile;
 import com.algangi.mongle.post.domain.repository.PostRepository;
 import com.algangi.mongle.post.event.PostCreatedEvent;
 import com.algangi.mongle.post.event.PostUpdatedEvent;
-import com.algangi.mongle.post.exception.PostErrorCode;
 import com.algangi.mongle.post.presentation.dto.AdminPostCreateRequest;
 import com.algangi.mongle.post.presentation.dto.AdminPostUpdateRequest;
 import com.algangi.mongle.post.presentation.dto.PostCreateResponse;
 import com.algangi.mongle.post.presentation.dto.PostUpdateResponse;
+import com.algangi.mongle.post.presentation.dto.UpdateInfoTextRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -40,10 +39,6 @@ public class AdminPostService {
     @Transactional
     public PostCreateResponse createAdminPost(AdminPostCreateRequest request, String authorId) {
         Member author = memberFinder.getMemberOrThrow(authorId);
-        if (!author.isAdmin()) {
-            log.warn("Non-admin user attempted to create admin post. userId={}", authorId);
-            throw new ApplicationException(PostErrorCode.POST_ACCESS_DENIED);
-        }
 
         Location location = Location.create(request.latitude(), request.longitude());
         String s2TokenId = cellService.generateS2TokenIdFrom(location.getLatitude(),
@@ -69,12 +64,6 @@ public class AdminPostService {
     @Transactional
     public PostUpdateResponse updateAdminPost(String postId, AdminPostUpdateRequest request,
         String adminId) {
-        Member admin = memberFinder.getMemberOrThrow(adminId);
-        if (!admin.isAdmin()) {
-            log.warn("Non-admin user attempted to update post. userId={}, postId={}", adminId,
-                postId);
-            throw new ApplicationException(PostErrorCode.POST_ACCESS_DENIED);
-        }
 
         Post post = postFinder.getPostWithPessimisticLockOrThrow(postId);
 
@@ -105,19 +94,19 @@ public class AdminPostService {
         return PostUpdateResponse.of(post.getId(), post.getContent(), post.isAnonymous());
     }
 
-
     @Transactional
     public void deleteAdminPost(String postId, String adminId) {
-        Member admin = memberFinder.getMemberOrThrow(adminId);
-        if (!admin.isAdmin()) {
-            log.warn("Non-admin user attempted to delete post. userId={}, postId={}", adminId,
-                postId);
-            throw new ApplicationException(PostErrorCode.POST_ACCESS_DENIED);
-        }
 
         Post post = postFinder.getPostOrThrow(postId);
         post.softDeleteByAdmin();
+    }
 
+    @Transactional
+    public void updatePostInfoText(String postId, UpdateInfoTextRequest request, String adminId) {
+        log.info("관리자({})가 게시글({})의 infoText 수정을 시도합니다.", adminId, postId);
+        Post post = postFinder.getPostWithPessimisticLockOrThrow(postId);
+
+        post.updateInfoText(request.infoText());
+        log.info("게시글({})의 infoText가 성공적으로 수정되었습니다.", postId);
     }
 }
-
