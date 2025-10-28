@@ -180,6 +180,10 @@ public class Post extends TimeBaseEntity {
         this.customNickname = StringUtils.hasText(customNickname) ? customNickname : null;
     }
 
+    public void updateInfoText(String newInfoText) {
+        this.infoText = newInfoText;
+    }
+
 
     public void updatePostFiles(List<PostFile> newPostFiles) {
         this.postFiles.clear();
