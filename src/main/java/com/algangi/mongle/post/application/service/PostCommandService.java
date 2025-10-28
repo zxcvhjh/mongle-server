@@ -1,6 +1,9 @@
 package com.algangi.mongle.post.application.service;
 
 import com.algangi.mongle.global.exception.ApplicationException;
+import com.algangi.mongle.member.application.service.MemberFinder;
+import com.algangi.mongle.member.domain.model.Member;
+import com.algangi.mongle.member.domain.model.MemberRole;
 import com.algangi.mongle.post.application.helper.PostFinder;
 import com.algangi.mongle.post.domain.model.Post;
 import com.algangi.mongle.post.exception.PostErrorCode;
@@ -16,11 +19,16 @@ import java.util.Objects;
 public class PostCommandService {
 
     private final PostFinder postFinder;
+    private final MemberFinder memberFinder;
 
     public void deletePost(String postId, String memberId) {
+        Member member = memberFinder.getMemberOrThrow(memberId);
         Post post = postFinder.getPostOrThrow(postId);
-        
-        if (!Objects.equals(post.getAuthorId(), memberId)) {
+
+        boolean isAuthor = Objects.equals(post.getAuthorId(), member.getMemberId());
+        boolean isAdmin = member.getMemberRole() == MemberRole.ADMIN;
+
+        if (!isAuthor && !isAdmin) {
             throw new ApplicationException(PostErrorCode.POST_ACCESS_DENIED);
         }
 
