@@ -25,7 +25,7 @@ public class PostCommandService {
         Member member = memberFinder.getMemberOrThrow(memberId);
         Post post = postFinder.getPostOrThrow(postId);
 
-        boolean isAuthor = Objects.equals(post.getAuthorId(), member.getMemberId()); // 또는 memberId
+        boolean isAuthor = Objects.equals(post.getAuthorId(), member.getMemberId());
         boolean isAdmin = member.getMemberRole() == MemberRole.ADMIN;
 
         if (!isAuthor && !isAdmin) {
