@@ -126,10 +126,9 @@ public class PostCreationService {
 
         if (staticCloud.isPresent()) {
             createdPost = createPostInStaticCloud(command, staticCloud.get());
-        } else if (existingDynamicCloud.isPresent()) {
-            createdPost = createPostInDynamicCloud(command, existingDynamicCloud.get());
-        } else {
-            createdPost = handleNewPost(command, finalS2TokenId);
+        }else {
+        // 정적 구름이 없으면 무조건 독립 게시물(알갱이)로 생성
+        createdPost = createStandalonePost(command);
         }
 
         Post savedPost = postRepository.save(createdPost);
