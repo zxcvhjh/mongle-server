@@ -87,12 +87,8 @@ public class PostCreationService {
             if (existingPostCount >= MAX_POST_COUNT_PER_USER) {
                 Optional<Post> oldestPost = postRepository.findFirstByAuthorIdAndStatusOrderByCreatedDateAsc(
                     authorId, PostStatus.ACTIVE);
-                // 일반 사용자 글만 만료 처리 (관리자 글은 건드리지 않음)
-                oldestPost.ifPresent(post -> {
-                    if (!post.getAuthorId().startsWith("admin")) { // 방어 로직 추가
-                        post.markAsExpired(); // 상태 변경 (혹은 softDeleteByAdmin 등 정책에 맞게)
-                    }
-                });
+                // 일반 사용자 글만 만료 처리 (작성자는 현재 사용자와 동일하므로 이미 관리자가 아님을 확인했음)
+                oldestPost.ifPresent(Post::markAsExpired);
             }
         }
 

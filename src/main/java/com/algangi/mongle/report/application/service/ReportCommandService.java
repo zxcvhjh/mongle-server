@@ -52,8 +52,8 @@ public class ReportCommandService {
     public void createReport(String reporterId, ReportCreateRequest request) {
         String targetAuthorId = getTargetAuthorIdAndValidate(request.targetType(),
             request.targetId());
-        
-        if (isProtectedAccount(targetAuthorId)) {
+
+        if (targetAuthorId != null && isProtectedAccount(targetAuthorId)) {
             throw new ApplicationException(ReportErrorCode.CANNOT_REPORT_ADMIN_OR_BOOTH);
         }
 
@@ -167,8 +167,14 @@ public class ReportCommandService {
     }
 
     private boolean isProtectedAccount(String memberId) {
-        return StringUtils.hasText(memberId) && (memberId.startsWith("admin")
-            || memberId.startsWith("booth"));
+        try {
+            Member member = memberFinder.getMemberOrThrow(memberId);
+            return member.getMemberRole() == com.algangi.mongle.member.domain.model.MemberRole.ADMIN
+                || member.getMemberRole() == com.algangi.mongle.member.domain.model.MemberRole.BOOTH;
+        } catch (ApplicationException e) {
+            // If member not found, it's not a protected account
+            return false;
+        }
     }
 
     private String hashIPForLogging(String ip) {

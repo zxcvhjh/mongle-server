@@ -11,7 +11,6 @@ import com.algangi.mongle.member.application.service.MemberFinder;
 import com.algangi.mongle.member.domain.model.Member;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.util.StringUtils;
 
 
 @Service
@@ -27,10 +26,6 @@ public class BlockCommandService {
             throw new ApplicationException(BlockErrorCode.CANNOT_BLOCK_SELF);
         }
 
-        if (isProtectedAccount(blockedId)) {
-            throw new ApplicationException(BlockErrorCode.CANNOT_BLOCK_ADMIN_OR_BOOTH);
-        }
-
         if (blockRepository.findByBlocker_MemberIdAndBlocked_MemberId(blockerId, blockedId)
             .isPresent()) {
             return;
@@ -38,6 +33,10 @@ public class BlockCommandService {
 
         Member blocker = memberFinder.getMemberOrThrow(blockerId);
         Member blocked = memberFinder.getMemberOrThrow(blockedId);
+
+        if (isProtectedAccount(blocked)) {
+            throw new ApplicationException(BlockErrorCode.CANNOT_BLOCK_ADMIN_OR_BOOTH);
+        }
 
         Block newBlock = Block.of(blocker, blocked);
         blockRepository.save(newBlock);
@@ -48,8 +47,8 @@ public class BlockCommandService {
             .ifPresent(blockRepository::delete);
     }
 
-    private boolean isProtectedAccount(String memberId) {
-        return StringUtils.hasText(memberId) && (memberId.startsWith("admin")
-            || memberId.startsWith("booth"));
+    private boolean isProtectedAccount(Member member) {
+        return member.getMemberRole() == com.algangi.mongle.member.domain.model.MemberRole.ADMIN
+            || member.getMemberRole() == com.algangi.mongle.member.domain.model.MemberRole.BOOTH;
     }
 }
