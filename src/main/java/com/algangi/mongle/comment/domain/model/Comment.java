@@ -1,6 +1,7 @@
 package com.algangi.mongle.comment.domain.model;
 
 import com.algangi.mongle.comment.exception.CommentErrorCode;
+import com.algangi.mongle.global.constants.ReportConstants;
 import com.algangi.mongle.global.entity.TimeBaseEntity;
 import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.member.domain.model.Member;
@@ -32,8 +33,6 @@ import lombok.NoArgsConstructor;
 @Getter
 public class Comment extends TimeBaseEntity implements
     CursorConvertible {
-
-    private static final int REPORT_BLOCK_THRESHOLD = 5;
 
     @Id
     @Tsid
@@ -176,7 +175,7 @@ public class Comment extends TimeBaseEntity implements
         }
 
         this.reportCount += 1;
-        if (this.reportCount >= REPORT_BLOCK_THRESHOLD) {
+        if (this.reportCount >= ReportConstants.REPORT_BLOCK_THRESHOLD) {
             this.status = CommentStatus.BLOCKED_BY_REPORTS;
         }
     }

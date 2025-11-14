@@ -2,6 +2,7 @@ package com.algangi.mongle.post.domain.model;
 
 import com.algangi.mongle.comment.domain.model.Comment;
 import com.algangi.mongle.global.annotation.ULID;
+import com.algangi.mongle.global.constants.ReportConstants;
 import com.algangi.mongle.global.entity.TimeBaseEntity;
 import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.post.exception.PostErrorCode;
@@ -25,8 +26,6 @@ import java.util.List;
 @Builder(access = AccessLevel.PRIVATE, toBuilder = true)
 @Getter
 public class Post extends TimeBaseEntity {
-
-    private static final int REPORT_BLOCK_THRESHOLD = 5;
 
     @Id
     @ULID
@@ -253,7 +252,7 @@ public class Post extends TimeBaseEntity {
             throw new ApplicationException(PostErrorCode.INVALID_STATUS);
         }
         this.reportCount++;
-        if (this.reportCount >= REPORT_BLOCK_THRESHOLD) {
+        if (this.reportCount >= ReportConstants.REPORT_BLOCK_THRESHOLD) {
             this.status = PostStatus.BLOCKED_BY_REPORTS;
         }
     }
