@@ -12,6 +12,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
 import org.springframework.util.StringUtils;
 
 import java.time.Instant;
@@ -79,6 +80,7 @@ public class Post extends TimeBaseEntity {
     private PostStatus status = PostStatus.PENDING;
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 30)
     @Builder.Default
     private List<PostFile> postFiles = new ArrayList<>();
 
