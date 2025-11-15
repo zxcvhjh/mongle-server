@@ -6,12 +6,14 @@ import com.algangi.mongle.global.constants.ReportConstants;
 import com.algangi.mongle.global.entity.TimeBaseEntity;
 import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.post.exception.PostErrorCode;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.hibernate.annotations.BatchSize;
 import org.springframework.util.StringUtils;
 
@@ -26,6 +28,7 @@ import java.util.List;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder(access = AccessLevel.PRIVATE, toBuilder = true)
 @Getter
+@ToString(exclude = {"postFiles", "comments"})
 public class Post extends TimeBaseEntity {
 
     @Id
@@ -82,6 +85,7 @@ public class Post extends TimeBaseEntity {
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     @BatchSize(size = 30)
     @Builder.Default
+    @JsonIgnore
     private List<PostFile> postFiles = new ArrayList<>();
 
     @Column(nullable = true)
@@ -100,6 +104,7 @@ public class Post extends TimeBaseEntity {
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
+    @JsonIgnore
     private List<Comment> comments = new ArrayList<>();
 
 

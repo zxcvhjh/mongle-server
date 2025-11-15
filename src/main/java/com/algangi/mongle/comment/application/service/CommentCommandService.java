@@ -1,6 +1,7 @@
 package com.algangi.mongle.comment.application.service;
 
 import com.algangi.mongle.comment.presentation.dto.CommentCreateRequest;
+import com.algangi.mongle.global.util.AuthorizationUtil;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,9 +16,6 @@ import com.algangi.mongle.comment.exception.CommentErrorCode;
 import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.member.application.service.MemberFinder;
 import com.algangi.mongle.member.domain.model.Member;
-import com.algangi.mongle.member.domain.model.MemberRole;
-import com.algangi.mongle.member.domain.model.MemberStatus;
-import com.algangi.mongle.member.exception.MemberErrorCode;
 import com.algangi.mongle.post.application.helper.PostFinder;
 import com.algangi.mongle.post.domain.model.Post;
 
@@ -37,7 +35,7 @@ public class CommentCommandService {
     @Transactional
     public void createParentComment(String postId, CommentCreateRequest dto, String memberId) {
         Member author = memberFinder.getMemberOrThrow(memberId);
-        requireActive(author);
+        author.validateActive();
 
         Post post = postFinder.getPostOrThrow(postId);
 
@@ -52,7 +50,7 @@ public class CommentCommandService {
     @Transactional
     public void createChildComment(String parentCommentId, CommentCreateRequest dto, String memberId) {
         Member author = memberFinder.getMemberOrThrow(memberId);
-        requireActive(author);
+        author.validateActive();
 
         Comment parent = commentFinder.getCommentOrThrow(parentCommentId);
 
@@ -68,33 +66,24 @@ public class CommentCommandService {
     @Transactional
     public void deleteComment(String commentId, String memberId) {
         Member member = memberFinder.getMemberOrThrow(memberId);
-        requireActive(member);
+        member.validateActive();
 
         Comment comment = commentFinder.getCommentOrThrow(commentId);
         if (comment.isDeleted()) {
             throw new ApplicationException(CommentErrorCode.ALREADY_DELETED);
         }
 
-        // 익명 댓글의 경우 member가 null일 수 있으므로 null 체크 필요
-        boolean isAuthor = comment.getMember() != null
-            && comment.getMember().getMemberId().equals(member.getMemberId());
-        boolean isAdmin = member.getMemberRole() == MemberRole.ADMIN;
-
-        if (!isAuthor && !isAdmin) {
-            throw new ApplicationException(CommentErrorCode.COMMENT_ACCESS_DENIED);
-        }
+        // 익명 댓글의 경우 member가 null이므로 AuthorizationUtil이 이를 처리
+        // 작성자 또는 관리자만 삭제 가능
+        String commentAuthorId = comment.getMember() != null ? comment.getMember().getMemberId() : null;
+        AuthorizationUtil.validateOwnershipOrAdmin(
+            commentAuthorId,
+            member,
+            CommentErrorCode.COMMENT_ACCESS_DENIED
+        );
 
         commentDomainService.deleteComment(comment);
         eventPublisher.publishEvent(new CommentDeletedEvent(comment.getPost().getId()));
-    }
-
-    public void requireActive(Member member) {
-        if (member.getStatus() == MemberStatus.BANNED) {
-            throw new ApplicationException(MemberErrorCode.MEMBER_IS_BANNED);
-        }
-        if (member.getStatus() == MemberStatus.DEACTIVATED) {
-            throw new ApplicationException(MemberErrorCode.MEMBER_IS_DEACTIVATED);
-        }
     }
 
     private boolean isAnonymous(CommentCreateRequest dto) {

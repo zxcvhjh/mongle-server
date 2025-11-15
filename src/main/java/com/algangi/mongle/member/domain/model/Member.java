@@ -143,4 +143,21 @@ public class Member extends TimeBaseEntity {
     public boolean isBooth() {
         return this.memberRole == MemberRole.BOOTH;
     }
+
+    /**
+     * 회원의 활성 상태를 검증합니다.
+     * BANNED 또는 DEACTIVATED 상태일 경우 예외를 발생시킵니다.
+     *
+     * @throws com.algangi.mongle.global.exception.ApplicationException 회원이 차단되었거나 탈퇴한 경우
+     */
+    public void validateActive() {
+        if (this.status == MemberStatus.BANNED) {
+            throw new com.algangi.mongle.global.exception.ApplicationException(
+                com.algangi.mongle.member.exception.MemberErrorCode.MEMBER_IS_BANNED);
+        }
+        if (this.status == MemberStatus.DEACTIVATED) {
+            throw new com.algangi.mongle.global.exception.ApplicationException(
+                com.algangi.mongle.member.exception.MemberErrorCode.MEMBER_IS_DEACTIVATED);
+        }
+    }
 }

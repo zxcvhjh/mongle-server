@@ -3,8 +3,6 @@ package com.algangi.mongle.post.application.service;
 import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.member.domain.model.Member;
 import com.algangi.mongle.member.domain.model.MemberRole;
-import com.algangi.mongle.member.domain.model.MemberStatus;
-import com.algangi.mongle.member.exception.MemberErrorCode;
 import com.algangi.mongle.post.domain.model.Post;
 import com.algangi.mongle.post.domain.model.PostStatus;
 import com.algangi.mongle.post.domain.repository.PostRepository;
@@ -32,14 +30,10 @@ public class PostCreationPolicyService {
 
     /**
      * 사용자 상태가 활성화되어 있는지 검증
+     * Member 도메인의 validateActive() 메서드 위임
      */
     public void validateMemberStatus(Member member) {
-        if (member.getStatus() == MemberStatus.BANNED) {
-            throw new ApplicationException(MemberErrorCode.MEMBER_IS_BANNED);
-        }
-        if (member.getStatus() == MemberStatus.DEACTIVATED) {
-            throw new ApplicationException(MemberErrorCode.MEMBER_IS_DEACTIVATED);
-        }
+        member.validateActive();
     }
 
     /**

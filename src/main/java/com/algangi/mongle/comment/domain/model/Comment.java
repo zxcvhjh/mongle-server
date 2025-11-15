@@ -7,6 +7,7 @@ import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.member.domain.model.Member;
 import com.algangi.mongle.post.domain.model.Post;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.hypersistence.utils.hibernate.id.Tsid;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -24,6 +25,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Entity
 @Table(name = "comment")
@@ -31,6 +33,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder(access = AccessLevel.PRIVATE)
 @Getter
+@ToString(exclude = {"post", "parentComment", "member"})
 public class Comment extends TimeBaseEntity implements
     CursorConvertible {
 
@@ -61,13 +64,16 @@ public class Comment extends TimeBaseEntity implements
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_comment_id")
+    @JsonIgnore
     private Comment parentComment;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id", nullable = false)
+    @JsonIgnore
     private Post post;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = true)
+    @JsonIgnore
     private Member member;
 
     @Column(nullable = false)
