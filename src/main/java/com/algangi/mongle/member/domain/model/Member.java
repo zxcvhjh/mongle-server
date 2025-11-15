@@ -55,7 +55,6 @@ public class Member extends TimeBaseEntity {
     public static Member createUser(String email, String encodedPassword, String nickname,
         String profileImage) {
         validateUserEssentials(email, encodedPassword, nickname);
-        validatePasswordEncoding(encodedPassword);
         return Member.builder()
             .memberId(UlidCreator.getUlid().toString())
             .email(email)
@@ -70,7 +69,6 @@ public class Member extends TimeBaseEntity {
         String nickname, String profileImage) {
         validateMemberId(memberId);
         validateUserEssentials(email, encodedPassword, nickname);
-        validatePasswordEncoding(encodedPassword);
         return Member.builder()
             .memberId(memberId)
             .email(email)
@@ -91,7 +89,6 @@ public class Member extends TimeBaseEntity {
         String profileImage, String encodedPassword) {
         validateMemberId(memberId);
         validateUserEssentials(email, encodedPassword, nickname);
-        validatePasswordEncoding(encodedPassword);
         return Member.builder()
             .memberId(memberId)
             .email(email)
@@ -100,12 +97,6 @@ public class Member extends TimeBaseEntity {
             .memberRole(MemberRole.ADMIN)
             .encodedPassword(encodedPassword)
             .build();
-    }
-
-    private static void validatePasswordEncoding(String encodedPassword) {
-        if (!encodedPassword.startsWith("{bcrypt}") && !encodedPassword.startsWith("$2")) {
-            throw new IllegalArgumentException("인코딩되지 않은 비밀번호는 저장할 수 없습니다.");
-        }
     }
 
     private static void validateUserEssentials(String email, String password, String nickname) {
