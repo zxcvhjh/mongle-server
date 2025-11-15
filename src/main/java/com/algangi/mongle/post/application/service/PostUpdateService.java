@@ -3,8 +3,6 @@ package com.algangi.mongle.post.application.service;
 import java.util.List;
 
 import com.algangi.mongle.global.util.AuthorizationUtil;
-import com.algangi.mongle.member.application.service.MemberFinder;
-import com.algangi.mongle.member.domain.model.Member;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,13 +22,11 @@ import lombok.RequiredArgsConstructor;
 public class PostUpdateService {
 
     private final PostFinder postFinder;
-    private final MemberFinder memberFinder;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public PostUpdateResponse updatePost(String postId, PostUpdateRequest request,
         String memberId) {
-        Member member = memberFinder.getMemberOrThrow(memberId);
         Post post = postFinder.getPostWithPessimisticLockOrThrow(postId);
 
         // 작성자만 수정 가능 (관리자 예외 없음)

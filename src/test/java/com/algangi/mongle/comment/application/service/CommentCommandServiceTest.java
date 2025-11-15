@@ -161,13 +161,12 @@ class CommentCommandServiceTest {
     }
 
     private Member createMember(String memberId, String nickname, MemberRole role, MemberStatus status) {
-        Member member = Member.createMember(
-            memberId,
-            nickname,
-            "test@example.com",
-            "encodedPassword",
-            role
-        );
+        Member member = switch (role) {
+            case USER -> Member.createUser("test@example.com", "encodedPassword", nickname, null);
+            case BOOTH -> Member.createBoothAccount(memberId, "test@example.com", "encodedPassword", nickname, null);
+            case ADMIN -> Member.createAdmin(memberId, "test@example.com", nickname, null, "encodedPassword");
+        };
+        ReflectionTestUtils.setField(member, "memberId", memberId);
         ReflectionTestUtils.setField(member, "status", status);
         return member;
     }
