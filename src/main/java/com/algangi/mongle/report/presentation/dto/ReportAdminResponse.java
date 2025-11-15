@@ -24,7 +24,7 @@ public record ReportAdminResponse(
         return new ReportAdminResponse(
             report.getId(),
             Optional.ofNullable(report.getReporter()).map(ReporterInfo::from)
-                .orElse(ReporterInfo.anonymous()),
+                .orElseGet(ReporterInfo::anonymous),
             report.getTargetId(),
             report.getTargetType(),
             new TargetAuthorInfo(report.getTargetAuthorId()),

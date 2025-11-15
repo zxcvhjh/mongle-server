@@ -4,6 +4,7 @@ import com.algangi.mongle.block.application.service.BlockQueryService;
 import com.algangi.mongle.dynamicCloud.domain.repository.DynamicCloudRepository;
 import com.algangi.mongle.file.application.dto.PresignedUrl;
 import com.algangi.mongle.file.application.service.ViewUrlIssueService;
+import com.algangi.mongle.global.constants.FilePathConstants;
 import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.member.application.service.MemberFinder;
 import com.algangi.mongle.member.domain.model.Member;
@@ -159,11 +160,11 @@ public class PostQueryService {
 
         List<String> photoKeys = post.getPostFiles().stream()
             .map(PostFile::getFileKey)
-            .filter(key -> key.startsWith("posts/images/"))
+            .filter(key -> key.startsWith(FilePathConstants.POST_IMAGES_PATH))
             .toList();
         List<String> videoKeys = post.getPostFiles().stream()
             .map(PostFile::getFileKey)
-            .filter(key -> key.startsWith("posts/videos/"))
+            .filter(key -> key.startsWith(FilePathConstants.POST_VIDEOS_PATH))
             .toList();
 
         List<String> photoUrls = issueFileUrls(photoKeys);
@@ -239,7 +240,7 @@ public class PostQueryService {
                 Post::getId,
                 p -> p.getPostFiles().stream()
                     .map(PostFile::getFileKey)
-                    .filter(key -> key.startsWith("posts/images/"))
+                    .filter(key -> key.startsWith(FilePathConstants.POST_IMAGES_PATH))
                     .toList()
             ));
 

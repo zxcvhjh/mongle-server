@@ -2,15 +2,19 @@ package com.algangi.mongle.post.domain.model;
 
 import com.algangi.mongle.comment.domain.model.Comment;
 import com.algangi.mongle.global.annotation.ULID;
+import com.algangi.mongle.global.constants.ReportConstants;
 import com.algangi.mongle.global.entity.TimeBaseEntity;
 import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.post.exception.PostErrorCode;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
+import org.hibernate.annotations.BatchSize;
 import org.springframework.util.StringUtils;
 
 import java.time.Instant;
@@ -24,9 +28,8 @@ import java.util.List;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder(access = AccessLevel.PRIVATE, toBuilder = true)
 @Getter
+@ToString(exclude = {"postFiles", "comments"})
 public class Post extends TimeBaseEntity {
-
-    private static final int REPORT_BLOCK_THRESHOLD = 5;
 
     @Id
     @ULID
@@ -80,7 +83,9 @@ public class Post extends TimeBaseEntity {
     private PostStatus status = PostStatus.PENDING;
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 30)
     @Builder.Default
+    @JsonIgnore
     private List<PostFile> postFiles = new ArrayList<>();
 
     @Column(nullable = true)
@@ -99,6 +104,7 @@ public class Post extends TimeBaseEntity {
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
+    @JsonIgnore
     private List<Comment> comments = new ArrayList<>();
 
 
@@ -253,7 +259,7 @@ public class Post extends TimeBaseEntity {
             throw new ApplicationException(PostErrorCode.INVALID_STATUS);
         }
         this.reportCount++;
-        if (this.reportCount >= REPORT_BLOCK_THRESHOLD) {
+        if (this.reportCount >= ReportConstants.REPORT_BLOCK_THRESHOLD) {
             this.status = PostStatus.BLOCKED_BY_REPORTS;
         }
     }

@@ -26,19 +26,24 @@ public class GlobalExceptionHandler {
 
         ErrorCode errorCode = exception.getErrorCode();
 
-        if (exception instanceof RateLimitException) {
-            log.error("Unexpected ApplicationException type caught by general handler: {}",
-                exception.getClass().getName());
-            return ResponseEntity.status(errorCode.getStatus())
-                .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage(),
-                    ErrorInfo.of(exception.getErrorInfo())));
+        // 로깅: 에러 코드와 메시지, 추가 정보 기록
+        if (exception.getCause() != null) {
+            log.error("Application Exception: status={}, code={}, message={}, errorInfo={}",
+                errorCode.getStatus(), errorCode.getCode(), errorCode.getMessage(),
+                exception.getErrorInfo(), exception.getCause());
+        } else {
+            log.warn("Application Exception: status={}, code={}, message={}, errorInfo={}",
+                errorCode.getStatus(), errorCode.getCode(), errorCode.getMessage(),
+                exception.getErrorInfo());
         }
 
+        // BannedEmailException은 errorInfo 없이 반환
         if (exception instanceof BannedEmailException) {
             return ResponseEntity.status(errorCode.getStatus())
                 .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage()));
         }
 
+        // 일반 ApplicationException은 errorInfo 포함하여 반환
         return ResponseEntity.status(errorCode.getStatus())
             .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage(),
                 ErrorInfo.of(exception.getErrorInfo())));
@@ -48,6 +53,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleRateLimitException(
         RateLimitException exception) {
         ErrorCode errorCode = exception.getErrorCode();
+        log.warn("Rate Limit Exception: code={}, message={}", errorCode.getCode(), errorCode.getMessage());
         return ResponseEntity.status(errorCode.getStatus())
             .body(ApiResponse.error(errorCode.getCode(), exception.getMessage()));
     }
@@ -56,7 +62,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<ErrorInfo>> handleIllegalArgumentException(
         IllegalArgumentException exception) {
-
+        log.warn("IllegalArgumentException: {}", exception.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(ApiResponse.error(HttpStatus.BAD_REQUEST.getReasonPhrase(),
                 exception.getMessage()));
@@ -65,7 +71,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(PessimisticLockingFailureException.class)
     public ResponseEntity<ApiResponse<ErrorInfo>> handlePessimisticLockingFailure(
         PessimisticLockingFailureException exception) {
-
+        log.warn("PessimisticLockingFailureException: {}", exception.getMessage());
         return ResponseEntity.status(HttpStatus.LOCKED)
             .body(ApiResponse.error(HttpStatus.LOCKED.getReasonPhrase(),
                 exception.getMessage()));
@@ -82,6 +88,7 @@ public class GlobalExceptionHandler {
             )))
             .toList();
 
+        log.warn("Validation Exception: {}", errors);
         return ResponseEntity.badRequest()
             .body(ApiResponse.error("VALIDATION_FAILED", "요청 유효성 검사에 실패했습니다.", errors));
     }
@@ -90,6 +97,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleTypeMismatchException(
         MethodArgumentTypeMismatchException exception) {
         String message = String.format("'%s' 파라미터에 유효하지 않은 값이 입력되었습니다.", exception.getName());
+        log.warn("Type Mismatch Exception: parameter={}, requiredType={}",
+            exception.getName(), exception.getRequiredType());
         return ResponseEntity.badRequest()
             .body(ApiResponse.error("INVALID_PARAMETER_TYPE", message));
     }
@@ -97,7 +106,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ApiResponse<Void>> handleException(
         HttpRequestMethodNotSupportedException exception) {
-
+        log.warn("HTTP Method Not Supported: {}", exception.getMethod());
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
             .body(ApiResponse.error("HTTP_METHOD_NOT_SUPPORTED", "지원하지 않는 HTTP 메소드입니다."));
     }

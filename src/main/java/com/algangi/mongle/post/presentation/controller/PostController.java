@@ -1,6 +1,5 @@
 package com.algangi.mongle.post.presentation.controller;
 
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.algangi.mongle.auth.infrastructure.security.authentication.CustomUserDetails;
-import com.algangi.mongle.global.dto.ApiResponse;
 import com.algangi.mongle.post.application.service.PostCommandService;
 import com.algangi.mongle.post.application.service.PostCreationService;
 import com.algangi.mongle.post.application.service.PostQueryService;
@@ -29,6 +27,10 @@ import com.algangi.mongle.post.presentation.dto.PostUpdateResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * 게시글 API 컨트롤러
+ * ApiResponseAdvice에 의해 자동으로 ApiResponse로 래핑됨
+ */
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -39,54 +41,43 @@ public class PostController {
     private final PostCommandService postCommandService;
     private final PostUpdateService postUpdateService;
 
-    // 게시글 생성
     @PostMapping("/posts")
-    public ResponseEntity<ApiResponse<PostCreateResponse>> createPost(
+    public PostCreateResponse createPost(
         @Valid @RequestBody PostCreateRequest dto,
         @AuthenticationPrincipal CustomUserDetails user) {
-        PostCreateResponse response = postCreationService.createPost(dto, user.userId());
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return postCreationService.createPost(dto, user.userId());
     }
 
-    // 게시글 목록 조회 (정적/동적 구름 내부)
     @GetMapping("/posts")
-    public ResponseEntity<ApiResponse<PostListResponse>> getPostList(
+    public PostListResponse getPostList(
         @Valid @ModelAttribute PostListRequest request,
         @AuthenticationPrincipal CustomUserDetails user) {
         String memberId = (user != null) ? user.userId() : null;
-        PostListResponse response = postQueryService.getPostList(request, memberId);
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return postQueryService.getPostList(request, memberId);
     }
 
-    // 게시글 상세 조회
     @GetMapping("/posts/{postId}")
-    public ResponseEntity<ApiResponse<PostDetailResponse>> getPostDetail(
+    public PostDetailResponse getPostDetail(
         @PathVariable String postId,
         @AuthenticationPrincipal CustomUserDetails user) {
         String memberId = (user != null) ? user.userId() : null;
-        PostDetailResponse response = postQueryService.getPostDetail(postId, memberId);
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return postQueryService.getPostDetail(postId, memberId);
     }
 
-    // 게시글 삭제
     @DeleteMapping("/posts/{postId}")
-    public ResponseEntity<ApiResponse<Void>> deletePost(
+    public void deletePost(
         @PathVariable String postId,
         @AuthenticationPrincipal CustomUserDetails user
     ) {
         postCommandService.deletePost(postId, user.userId());
-        return ResponseEntity.ok(ApiResponse.success());
     }
 
-    // 게시글 수정
     @PutMapping("/posts/{postId}")
-    public ResponseEntity<ApiResponse<PostUpdateResponse>> updatePost(
+    public PostUpdateResponse updatePost(
         @PathVariable(name = "postId") String postId,
         @Valid @RequestBody PostUpdateRequest request,
         @AuthenticationPrincipal CustomUserDetails user) {
-
-        return ResponseEntity.ok(
-            ApiResponse.success(postUpdateService.updatePost(postId, request, user.userId())));
+        return postUpdateService.updatePost(postId, request, user.userId());
     }
 }
 

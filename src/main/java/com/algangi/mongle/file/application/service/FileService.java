@@ -65,6 +65,17 @@ public class FileService {
         return ViewUrlResponse.of(viewUrlIssueService.issueViewUrls(request.fileKeyList()));
     }
 
+    /**
+     * 임시 파일을 영구 파일로 전환합니다.
+     *
+     * <p><strong>주의:</strong> 이 메서드는 이벤트 리스너(PostCreatedEventListener 등)에서만
+     * 호출되어야 합니다. 이벤트 발생 시점에 이미 권한 검증이 완료되어 있습니다.</p>
+     *
+     * <p>파일 소유권 검증은 게시글/댓글 생성 시점에 이미 수행되었으므로,
+     * 이 메서드에서는 별도의 검증을 하지 않습니다.</p>
+     *
+     * @param fileKeys 영구 파일로 전환할 파일 키 목록
+     */
     public void commitFiles(List<String> fileKeys) {
         if (fileKeys == null || fileKeys.isEmpty()) {
             return;
@@ -73,6 +84,18 @@ public class FileService {
         fileKeys.parallelStream().forEach(storageService::changeTagToPermanent);
     }
 
+    /**
+     * 영구 파일을 삭제합니다.
+     *
+     * <p><strong>주의:</strong> 이 메서드는 이벤트 리스너(PostUpdatedEventListener,
+     * WithdrawalCleanupService 등)에서만 호출되어야 합니다.
+     * 이벤트 발생 시점에 이미 권한 검증이 완료되어 있습니다.</p>
+     *
+     * <p>파일 소유권 검증은 게시글/댓글 수정/삭제 시점에 이미 수행되었으므로,
+     * 이 메서드에서는 별도의 검증을 하지 않습니다.</p>
+     *
+     * @param fileKeys 삭제할 파일 키 목록
+     */
     public void deletePermanentFiles(List<String> fileKeys) {
         storageService.deleteBulkFiles(fileKeys);
     }

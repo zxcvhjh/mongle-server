@@ -55,7 +55,6 @@ public class Member extends TimeBaseEntity {
     public static Member createUser(String email, String encodedPassword, String nickname,
         String profileImage) {
         validateUserEssentials(email, encodedPassword, nickname);
-        validatePasswordEncoding(encodedPassword);
         return Member.builder()
             .memberId(UlidCreator.getUlid().toString())
             .email(email)
@@ -70,7 +69,6 @@ public class Member extends TimeBaseEntity {
         String nickname, String profileImage) {
         validateMemberId(memberId);
         validateUserEssentials(email, encodedPassword, nickname);
-        validatePasswordEncoding(encodedPassword);
         return Member.builder()
             .memberId(memberId)
             .email(email)
@@ -91,7 +89,6 @@ public class Member extends TimeBaseEntity {
         String profileImage, String encodedPassword) {
         validateMemberId(memberId);
         validateUserEssentials(email, encodedPassword, nickname);
-        validatePasswordEncoding(encodedPassword);
         return Member.builder()
             .memberId(memberId)
             .email(email)
@@ -100,12 +97,6 @@ public class Member extends TimeBaseEntity {
             .memberRole(MemberRole.ADMIN)
             .encodedPassword(encodedPassword)
             .build();
-    }
-
-    private static void validatePasswordEncoding(String encodedPassword) {
-        if (!encodedPassword.startsWith("{bcrypt}") && !encodedPassword.startsWith("$2")) {
-            throw new IllegalArgumentException("인코딩되지 않은 비밀번호는 저장할 수 없습니다.");
-        }
     }
 
     private static void validateUserEssentials(String email, String password, String nickname) {
@@ -151,5 +142,22 @@ public class Member extends TimeBaseEntity {
 
     public boolean isBooth() {
         return this.memberRole == MemberRole.BOOTH;
+    }
+
+    /**
+     * 회원의 활성 상태를 검증합니다.
+     * BANNED 또는 DEACTIVATED 상태일 경우 예외를 발생시킵니다.
+     *
+     * @throws com.algangi.mongle.global.exception.ApplicationException 회원이 차단되었거나 탈퇴한 경우
+     */
+    public void validateActive() {
+        if (this.status == MemberStatus.BANNED) {
+            throw new com.algangi.mongle.global.exception.ApplicationException(
+                com.algangi.mongle.member.exception.MemberErrorCode.MEMBER_IS_BANNED);
+        }
+        if (this.status == MemberStatus.DEACTIVATED) {
+            throw new com.algangi.mongle.global.exception.ApplicationException(
+                com.algangi.mongle.member.exception.MemberErrorCode.MEMBER_IS_DEACTIVATED);
+        }
     }
 }

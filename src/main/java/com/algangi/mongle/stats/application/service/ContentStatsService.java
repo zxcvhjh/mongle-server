@@ -47,7 +47,7 @@ public class ContentStatsService {
     }
 
     public void decrementPostCommentCount(String postId) {
-        String key = COMMENT_COUNT_KEY_PREFIX + "post::" + postId;
+        String key = getKey(COMMENT_COUNT_KEY_PREFIX, TargetType.POST, postId);
         redisTemplate.execute(decrementScript, List.of(key));
     }
 

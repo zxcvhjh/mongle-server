@@ -2,12 +2,12 @@ package com.algangi.mongle.post.application.service;
 
 import java.util.List;
 
+import com.algangi.mongle.global.util.AuthorizationUtil;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.algangi.mongle.auth.exception.AuthErrorCode;
-import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.post.application.helper.PostFinder;
 import com.algangi.mongle.post.domain.model.Post;
 import com.algangi.mongle.post.domain.model.PostFile;
@@ -28,9 +28,13 @@ public class PostUpdateService {
     public PostUpdateResponse updatePost(String postId, PostUpdateRequest request,
         String memberId) {
         Post post = postFinder.getPostWithPessimisticLockOrThrow(postId);
-        if (!post.getAuthorId().equals(memberId)) {
-            throw new ApplicationException(AuthErrorCode.ACCESS_DENIED);
-        }
+
+        // 작성자만 수정 가능 (관리자 예외 없음)
+        AuthorizationUtil.validateOwnership(
+            post.getAuthorId(),
+            memberId,
+            AuthErrorCode.ACCESS_DENIED
+        );
         post.markAsPending();
 
         List<String> previousFileKeys = post.getPostFiles().stream()
