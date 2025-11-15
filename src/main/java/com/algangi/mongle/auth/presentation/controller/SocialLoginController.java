@@ -1,6 +1,5 @@
 package com.algangi.mongle.auth.presentation.controller;
 
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -11,10 +10,13 @@ import org.springframework.web.bind.annotation.RestController;
 import com.algangi.mongle.auth.application.service.oauth.OAuth2Service;
 import com.algangi.mongle.auth.presentation.dto.AuthorizationUrlResponse;
 import com.algangi.mongle.auth.presentation.dto.TokenInfo;
-import com.algangi.mongle.global.dto.ApiResponse;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * 소셜 로그인 API 컨트롤러
+ * ApiResponseAdvice에 의해 자동으로 ApiResponse로 래핑됨
+ */
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
@@ -30,11 +32,10 @@ public class SocialLoginController {
     }
 
     @PostMapping("social/{registrationId}/login")
-    public ResponseEntity<ApiResponse<TokenInfo>> socialLogin(
+    public TokenInfo socialLogin(
         @PathVariable(name = "registrationId") String registrationId,
         @RequestParam(name = "code") String authorizationCode
     ) {
-        TokenInfo tokenInfo = oauth2Service.socialLogin(registrationId, authorizationCode);
-        return ResponseEntity.ok(ApiResponse.success(tokenInfo));
+        return oauth2Service.socialLogin(registrationId, authorizationCode);
     }
 }

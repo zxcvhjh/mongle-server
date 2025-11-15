@@ -1,6 +1,5 @@
 package com.algangi.mongle.auth.presentation.controller;
 
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,11 +15,14 @@ import com.algangi.mongle.auth.presentation.dto.SignUpResponse;
 import com.algangi.mongle.auth.presentation.dto.VerifyEmailRequest;
 import com.algangi.mongle.auth.presentation.dto.VerifyEmailResponse;
 import com.algangi.mongle.auth.presentation.dto.VerifyNicknameResponse;
-import com.algangi.mongle.global.dto.ApiResponse;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * 회원가입 API 컨트롤러
+ * ApiResponseAdvice에 의해 자동으로 ApiResponse로 래핑됨
+ */
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
@@ -30,30 +32,28 @@ public class SignUpController {
     private final EmailVerificationService emailVerificationService;
 
     @PostMapping("/sign-up")
-    public ResponseEntity<ApiResponse<SignUpResponse>> signupMember(
+    public SignUpResponse signupMember(
         @Valid @RequestBody SignUpRequest request) {
-        return ResponseEntity.ok(ApiResponse.success(signUpService.signUp(request)));
+        return signUpService.signUp(request);
     }
 
     @PostMapping("/verification-code")
-    public ResponseEntity<ApiResponse<Void>> sendVerificationCode(
+    public void sendVerificationCode(
         @Valid @RequestBody SendVerificationCodeRequest request) {
         emailVerificationService.sendVerificationCode(request.email());
-        return ResponseEntity.ok(ApiResponse.success(null));
     }
 
     @PostMapping("/verify-code")
-    public ResponseEntity<ApiResponse<VerifyEmailResponse>> verifyVerificationCode(
+    public VerifyEmailResponse verifyVerificationCode(
         @Valid @RequestBody VerifyEmailRequest request
     ) {
-        return ResponseEntity.ok(
-            ApiResponse.success(emailVerificationService.verifyEmail(request)));
+        return emailVerificationService.verifyEmail(request);
     }
 
     @GetMapping("/verify-nickname")
-    public ResponseEntity<ApiResponse<VerifyNicknameResponse>> verifyNickname(
+    public VerifyNicknameResponse verifyNickname(
         @RequestParam("nickname") String nickname) {
-        return ResponseEntity.ok(ApiResponse.success(signUpService.verifyNickname(nickname)));
+        return signUpService.verifyNickname(nickname);
     }
 
 }
