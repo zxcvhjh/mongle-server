@@ -75,7 +75,9 @@ public class CommentCommandService {
             throw new ApplicationException(CommentErrorCode.ALREADY_DELETED);
         }
 
-        boolean isAuthor = comment.getMember().getMemberId().equals(member.getMemberId());
+        // 익명 댓글의 경우 member가 null일 수 있으므로 null 체크 필요
+        boolean isAuthor = comment.getMember() != null
+            && comment.getMember().getMemberId().equals(member.getMemberId());
         boolean isAdmin = member.getMemberRole() == MemberRole.ADMIN;
 
         if (!isAuthor && !isAdmin) {

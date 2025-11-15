@@ -62,9 +62,11 @@ public class PostCreationPolicyService {
 
     /**
      * 부스 계정의 게시글 수 제한 체크
+     * 부스는 최대 1개의 게시글만 생성 가능
      */
     public void validateBoothPostLimit(String authorId) {
         long activePostCount = postRepository.countByAuthorIdAndStatus(authorId, PostStatus.ACTIVE);
+        // activePostCount >= 1이면 이미 1개 존재하므로 추가 생성 불가
         if (activePostCount >= MAX_BOOTH_POST_COUNT) {
             throw new ApplicationException(PostErrorCode.BOOTH_POST_MAXIMUM_EXCEED);
         }
@@ -73,6 +75,10 @@ public class PostCreationPolicyService {
     /**
      * 일반 사용자의 게시글 수 제한 체크 및 초과 시 가장 오래된 게시글 만료 처리
      * 관리자는 제한 없음
+     *
+     * NOTE: 동시성 제어는 Member에 대한 Pessimistic Lock으로 보장됨
+     * (PostCreationService에서 getMemberWithLockOrThrow 호출)
+     * 따라서 동일 사용자의 게시글 생성 요청은 직렬화되어 race condition이 발생하지 않음
      *
      * @return 현재 활성 게시글 수
      */
@@ -84,6 +90,8 @@ public class PostCreationPolicyService {
         long existingPostCount = postRepository.countByAuthorIdAndStatus(
             member.getMemberId(), PostStatus.ACTIVE);
 
+        // existingPostCount가 5 이상이면 oldest 만료 후 새 게시글 생성
+        // 결과: 항상 최대 5개 유지
         if (existingPostCount >= MAX_POST_COUNT_PER_USER) {
             Optional<Post> oldestPost = postRepository.findFirstByAuthorIdAndStatusOrderByCreatedDateAsc(
                 member.getMemberId(), PostStatus.ACTIVE);
