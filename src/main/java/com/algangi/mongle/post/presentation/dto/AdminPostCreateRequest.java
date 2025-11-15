@@ -32,7 +32,7 @@ public record AdminPostCreateRequest(
 ) {
 
     public AdminPostCreateRequest {
-        fileKeyList = Optional.ofNullable(fileKeyList).orElse(Collections.emptyList());
+        fileKeyList = Optional.ofNullable(fileKeyList).orElseGet(Collections::emptyList);
     }
 }
 

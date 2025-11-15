@@ -28,7 +28,7 @@ public record PostCreateRequest(
 ) {
 
     public PostCreateRequest {
-        fileKeyList = Optional.ofNullable(fileKeyList).orElse(Collections.emptyList());
+        fileKeyList = Optional.ofNullable(fileKeyList).orElseGet(Collections::emptyList);
 
     }
 
