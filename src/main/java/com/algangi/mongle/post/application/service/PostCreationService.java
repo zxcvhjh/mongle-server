@@ -4,6 +4,7 @@ import com.algangi.mongle.comment.application.service.NotifyBotCommentService;
 import com.algangi.mongle.dynamicCloud.domain.model.DynamicCloud;
 import com.algangi.mongle.dynamicCloud.domain.repository.DynamicCloudRepository;
 import com.algangi.mongle.dynamicCloud.domain.service.DynamicCloudFormationService;
+import com.algangi.mongle.global.constants.MessageConstants;
 import com.algangi.mongle.global.domain.service.CellService;
 import com.algangi.mongle.global.exception.ApplicationException;
 import com.algangi.mongle.member.application.service.MemberFinder;
@@ -140,8 +141,7 @@ public class PostCreationService {
                 : MAX_POST_COUNT_PER_USER;
 
             String notifyContent = String.format(
-                "⚙\uFE0F 게시글 (%d/%d) · 5개 초과시 가장 오래된 게시글 삭제" +
-                    "\n⚙\uFE0F 24시간 후 게시글 자동 삭제",
+                MessageConstants.POST_CREATION_NOTIFICATION_TEMPLATE,
                 currentPostCount,
                 MAX_POST_COUNT_PER_USER);
 
