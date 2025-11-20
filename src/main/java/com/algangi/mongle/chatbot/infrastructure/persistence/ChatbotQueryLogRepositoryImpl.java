@@ -7,7 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -30,7 +30,7 @@ public class ChatbotQueryLogRepositoryImpl implements ChatbotQueryLogRepository 
     }
 
     @Override
-    public Page<ChatbotQueryLog> findByCreatedDateBetween(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+    public Page<ChatbotQueryLog> findByCreatedDateBetween(Instant startDate, Instant endDate, Pageable pageable) {
         return jpaRepository.findByCreatedDateBetween(startDate, endDate, pageable);
     }
 
@@ -50,7 +50,7 @@ public class ChatbotQueryLogRepositoryImpl implements ChatbotQueryLogRepository 
     }
 
     @Override
-    public long countByCreatedDateBetween(LocalDateTime startDate, LocalDateTime endDate) {
+    public long countByCreatedDateBetween(Instant startDate, Instant endDate) {
         return jpaRepository.countByCreatedDateBetween(startDate, endDate);
     }
 

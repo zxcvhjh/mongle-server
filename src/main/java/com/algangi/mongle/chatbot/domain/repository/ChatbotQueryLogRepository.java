@@ -4,7 +4,7 @@ import com.algangi.mongle.chatbot.domain.model.ChatbotQueryLog;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -36,7 +36,7 @@ public interface ChatbotQueryLogRepository {
      * @param pageable 페이징 정보
      * @return 로그 페이지
      */
-    Page<ChatbotQueryLog> findByCreatedDateBetween(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable);
+    Page<ChatbotQueryLog> findByCreatedDateBetween(Instant startDate, Instant endDate, Pageable pageable);
 
     /**
      * 성공/실패 여부로 로그 조회
@@ -68,7 +68,7 @@ public interface ChatbotQueryLogRepository {
      * @param endDate 종료 날짜
      * @return 로그 수
      */
-    long countByCreatedDateBetween(LocalDateTime startDate, LocalDateTime endDate);
+    long countByCreatedDateBetween(Instant startDate, Instant endDate);
 
     /**
      * 최근 N개 로그 조회

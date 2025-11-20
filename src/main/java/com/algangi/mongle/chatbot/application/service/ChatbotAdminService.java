@@ -10,9 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.*;
 import java.time.temporal.TemporalAdjusters;
 
 /**
@@ -56,7 +54,7 @@ public class ChatbotAdminService {
      * @param pageable 페이징 정보
      * @return 로그 페이지
      */
-    public Page<ChatbotQueryLog> getLogsByDateRange(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+    public Page<ChatbotQueryLog> getLogsByDateRange(Instant startDate, Instant endDate, Pageable pageable) {
         return queryLogRepository.findByCreatedDateBetween(startDate, endDate, pageable);
     }
 
@@ -66,6 +64,8 @@ public class ChatbotAdminService {
      * @return 통계 정보
      */
     public ChatbotLogStatistics getStatistics() {
+        ZoneId zoneId = ZoneId.systemDefault();
+
         // 전체 통계
         long totalQuestions = queryLogRepository.count();
         long successfulQuestions = queryLogRepository.countByIsSuccess(true);
@@ -75,24 +75,24 @@ public class ChatbotAdminService {
             : 0.0;
 
         // 오늘 통계
-        LocalDateTime startOfToday = LocalDateTime.of(LocalDate.now(), LocalTime.MIN);
-        LocalDateTime endOfToday = LocalDateTime.of(LocalDate.now(), LocalTime.MAX);
+        Instant startOfToday = LocalDate.now().atStartOfDay(zoneId).toInstant();
+        Instant endOfToday = LocalDate.now().atTime(LocalTime.MAX).atZone(zoneId).toInstant();
         long todayQuestions = queryLogRepository.countByCreatedDateBetween(startOfToday, endOfToday);
 
         // 이번 주 통계 (월요일 시작)
-        LocalDateTime startOfWeek = LocalDateTime.of(
-            LocalDate.now().with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)),
-            LocalTime.MIN
-        );
-        LocalDateTime endOfWeek = LocalDateTime.now();
+        Instant startOfWeek = LocalDate.now()
+            .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+            .atStartOfDay(zoneId)
+            .toInstant();
+        Instant endOfWeek = Instant.now();
         long thisWeekQuestions = queryLogRepository.countByCreatedDateBetween(startOfWeek, endOfWeek);
 
         // 이번 달 통계
-        LocalDateTime startOfMonth = LocalDateTime.of(
-            LocalDate.now().with(TemporalAdjusters.firstDayOfMonth()),
-            LocalTime.MIN
-        );
-        LocalDateTime endOfMonth = LocalDateTime.now();
+        Instant startOfMonth = LocalDate.now()
+            .with(TemporalAdjusters.firstDayOfMonth())
+            .atStartOfDay(zoneId)
+            .toInstant();
+        Instant endOfMonth = Instant.now();
         long thisMonthQuestions = queryLogRepository.countByCreatedDateBetween(startOfMonth, endOfMonth);
 
         return ChatbotLogStatistics.builder()

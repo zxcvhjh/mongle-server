@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -18,7 +18,7 @@ public interface ChatbotQueryLogJpaRepository extends JpaRepository<ChatbotQuery
     /**
      * 특정 기간의 로그 조회
      */
-    Page<ChatbotQueryLog> findByCreatedDateBetween(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable);
+    Page<ChatbotQueryLog> findByCreatedDateBetween(Instant startDate, Instant endDate, Pageable pageable);
 
     /**
      * 성공/실패 여부로 로그 조회
@@ -33,7 +33,7 @@ public interface ChatbotQueryLogJpaRepository extends JpaRepository<ChatbotQuery
     /**
      * 특정 기간의 로그 수 조회
      */
-    long countByCreatedDateBetween(LocalDateTime startDate, LocalDateTime endDate);
+    long countByCreatedDateBetween(Instant startDate, Instant endDate);
 
     /**
      * 최근 N개 로그 조회
