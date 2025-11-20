@@ -92,7 +92,8 @@ public class SecurityConfig {
         config.setAllowedOrigins(List.of(
             "http://localhost:3000",
             "https://mongle.site",
-            "https://www.mongle.site"  // www 서브도메인 지원
+            "https://www.mongle.site",
+            "https://api.mongle.site"  // API 서브도메인 지원
         ));
         config.setAllowedMethods(Arrays.asList(
             HttpMethod.GET.name(),
