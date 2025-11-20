@@ -344,7 +344,10 @@
 
             // 참고 링크
             if (data.references) {
-                content += `<a href="${escapeHtml(data.references)}" target="_blank" class="reference-link">📎 원문 보기</a>`;
+                // references에서 실제 URL 추출 (http:// 또는 https://로 시작하는 부분)
+                const urlMatch = data.references.match(/https?:\/\/[^\s]+/);
+                const cleanUrl = urlMatch ? urlMatch[0] : data.references;
+                content += `<a href="${escapeHtml(cleanUrl)}" target="_blank" class="reference-link">📎 원문 보기</a>`;
             }
 
             // 면책 조항
