@@ -284,19 +284,22 @@
                 // 로딩 메시지 제거
                 loadingMessage.remove();
 
-                if (!response.ok) {
-                    throw new Error('서버 응답 오류');
-                }
-
                 const data = await response.json();
 
-                // AI 응답 추가
+                // 에러 응답 처리
+                if (!response.ok) {
+                    const errorMsg = data.message || 'AI 서버에서 오류가 발생했습니다.';
+                    addErrorMessage(`${errorMsg}\n\n다른 질문을 시도해주세요.`);
+                    return;
+                }
+
+                // 정상 응답 처리
                 addAiMessage(data);
 
             } catch (error) {
                 console.error('Error:', error);
                 loadingMessage.remove();
-                addErrorMessage('죄송합니다. 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+                addErrorMessage('죄송합니다. 네트워크 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.');
             } finally {
                 // 버튼 다시 활성화
                 sendButton.disabled = false;
@@ -383,7 +386,7 @@
             messageDiv.className = 'message ai-message';
             messageDiv.innerHTML = `
                 <div class="message-content error-message">
-                    ${escapeHtml(text)}
+                    ${escapeHtml(text).replace(/\n/g, '<br>')}
                 </div>
             `;
             chatMessages.appendChild(messageDiv);
