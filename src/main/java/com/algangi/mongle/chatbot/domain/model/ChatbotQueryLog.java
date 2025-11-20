@@ -57,7 +57,7 @@ public class ChatbotQueryLog extends TimeBaseEntity {
     /**
      * 참고 URL
      */
-    @Column(length = 500)
+    @Column(name = "reference_url", length = 500)
     private String references;
 
     /**

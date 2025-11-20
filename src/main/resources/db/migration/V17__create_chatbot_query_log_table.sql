@@ -5,7 +5,7 @@ CREATE TABLE chatbot_query_log (
     answer TEXT COMMENT 'AI 답변',
     has_answer BOOLEAN NOT NULL DEFAULT FALSE COMMENT '답변 존재 여부',
     has_images BOOLEAN NOT NULL DEFAULT FALSE COMMENT '이미지 존재 여부',
-    references VARCHAR(500) COMMENT '참고 URL',
+    reference_url VARCHAR(500) COMMENT '참고 URL',
     response_time_ms BIGINT NOT NULL COMMENT '응답 시간(밀리초)',
     is_success BOOLEAN NOT NULL DEFAULT TRUE COMMENT '성공 여부',
     error_message VARCHAR(1000) COMMENT '에러 메시지',
