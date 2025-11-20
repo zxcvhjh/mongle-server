@@ -106,8 +106,8 @@ mongle:
 ai:
   chatbot:
     base-url: ${AI_CHATBOT_BASE_URL:http://172.31.37.76:5000}
-    connect-timeout-millis: 5000
-    read-timeout-millis: 30000
+    connect-timeout-millis: 10000
+    read-timeout-millis: 35000
 
 # ===================================================
 # Actuator (헬스 체크 및 메트릭) 설정
