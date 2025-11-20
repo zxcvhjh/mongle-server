@@ -63,6 +63,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/map/**").permitAll()
                 .requestMatchers("/health").permitAll()
                 .requestMatchers("/actuator/prometheus").permitAll()
+                .requestMatchers("/images/**").permitAll()  // 정적 리소스 (파비콘 등)
                 .requestMatchers("/chatbot/**").permitAll()  // 챗봇 (토큰 검증은 Controller에서)
                 .anyRequest().authenticated()
             )
