@@ -63,7 +63,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/map/**").permitAll()
                 .requestMatchers("/health").permitAll()
                 .requestMatchers("/actuator/prometheus").permitAll()
-                .requestMatchers("/chatbot/**").permitAll()
+                .requestMatchers("/chatbot/admin/**").hasRole("ADMIN")  // 관리자 전용
+                .requestMatchers("/chatbot/**").permitAll()  // 일반 사용자
                 .anyRequest().authenticated()
             )
             .addFilterBefore(tokenValidationFilter, LogoutFilter.class)

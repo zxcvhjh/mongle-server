@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>챗봇 관리자 대시보드 - 몽글</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        /* 통계 카드 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .label {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .stat-card.success .value {
+            color: #10b981;
+        }
+
+        .stat-card.failed .value {
+            color: #ef4444;
+        }
+
+        .stat-card.rate .value {
+            color: #667eea;
+        }
+
+        /* 필터 및 컨트롤 */
+        .controls {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .filter-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        /* 로그 테이블 */
+        .logs-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f9fafb;
+            padding: 12px;
+            text-align: left;
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        td {
+            padding: 12px;
+            font-size: 14px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        tr:hover {
+            background: #f9fafb;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge.failed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .question-cell {
+            max-width: 400px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .answer-cell {
+            max-width: 300px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #666;
+        }
+
+        .error-cell {
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #ef4444;
+            font-size: 12px;
+        }
+
+        /* 페이지네이션 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .page-btn {
+            padding: 8px 16px;
+            border: 1px solid #e5e7eb;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.2s;
+        }
+
+        .page-btn:hover {
+            background: #f3f4f6;
+        }
+
+        .page-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .page-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 헤더 -->
+        <div class="header">
+            <h1>🤖 챗봇 관리자 대시보드</h1>
+            <p>사용자 질문-답변 로그 및 통계를 한눈에 확인하세요</p>
+        </div>
+
+        <!-- 통계 카드 -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>전체 질문</h3>
+                <div class="value" th:text="${statistics.totalQuestions}">0</div>
+                <div class="label">Total Questions</div>
+            </div>
+            <div class="stat-card success">
+                <h3>성공한 질문</h3>
+                <div class="value" th:text="${statistics.successfulQuestions}">0</div>
+                <div class="label">Successful</div>
+            </div>
+            <div class="stat-card failed">
+                <h3>실패한 질문</h3>
+                <div class="value" th:text="${statistics.failedQuestions}">0</div>
+                <div class="label">Failed</div>
+            </div>
+            <div class="stat-card rate">
+                <h3>성공률</h3>
+                <div class="value" th:text="${statistics.successRate} + '%'">0%</div>
+                <div class="label">Success Rate</div>
+            </div>
+            <div class="stat-card">
+                <h3>오늘</h3>
+                <div class="value" th:text="${statistics.todayQuestions}">0</div>
+                <div class="label">Today</div>
+            </div>
+            <div class="stat-card">
+                <h3>이번 주</h3>
+                <div class="value" th:text="${statistics.thisWeekQuestions}">0</div>
+                <div class="label">This Week</div>
+            </div>
+            <div class="stat-card">
+                <h3>이번 달</h3>
+                <div class="value" th:text="${statistics.thisMonthQuestions}">0</div>
+                <div class="label">This Month</div>
+            </div>
+        </div>
+
+        <!-- 필터 컨트롤 -->
+        <div class="controls">
+            <span style="font-weight: 600; color: #666;">필터:</span>
+            <a th:href="@{/chatbot/admin(filter='all', page=0, size=${pageSize})}"
+               class="filter-btn"
+               th:classappend="${currentFilter == 'all'} ? 'active' : ''">
+                전체
+            </a>
+            <a th:href="@{/chatbot/admin(filter='success', page=0, size=${pageSize})}"
+               class="filter-btn"
+               th:classappend="${currentFilter == 'success'} ? 'active' : ''">
+                성공만
+            </a>
+            <a th:href="@{/chatbot/admin(filter='failed', page=0, size=${pageSize})}"
+               class="filter-btn"
+               th:classappend="${currentFilter == 'failed'} ? 'active' : ''">
+                실패만
+            </a>
+        </div>
+
+        <!-- 로그 테이블 -->
+        <div class="logs-container">
+            <table th:if="${logs.hasContent()}">
+                <thead>
+                    <tr>
+                        <th style="width: 100px;">상태</th>
+                        <th>질문</th>
+                        <th>답변</th>
+                        <th style="width: 100px;">응답시간</th>
+                        <th style="width: 80px;">이미지</th>
+                        <th>참고URL</th>
+                        <th>에러메시지</th>
+                        <th style="width: 160px;">생성시간</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="log : ${logs.content}">
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${log.isSuccess} ? 'success' : 'failed'"
+                                  th:text="${log.isSuccess} ? '성공' : '실패'">
+                                성공
+                            </span>
+                        </td>
+                        <td class="question-cell" th:text="${log.question}" th:title="${log.question}">질문 내용</td>
+                        <td class="answer-cell" th:text="${log.answer}" th:title="${log.answer}">답변 내용</td>
+                        <td th:text="${log.responseTimeMs} + 'ms'">1000ms</td>
+                        <td th:text="${log.hasImages} ? 'O' : 'X'">X</td>
+                        <td class="answer-cell" th:text="${log.references}" th:title="${log.references}">-</td>
+                        <td class="error-cell" th:text="${log.errorMessage}" th:title="${log.errorMessage}">-</td>
+                        <td th:text="${#temporals.format(log.createdDate, 'yyyy-MM-dd HH:mm:ss')}">2025-11-20 14:30:00</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="no-data" th:unless="${logs.hasContent()}">
+                <p>📭 로그 데이터가 없습니다.</p>
+            </div>
+
+            <!-- 페이지네이션 -->
+            <div class="pagination" th:if="${logs.hasContent()}">
+                <a th:href="@{/chatbot/admin(filter=${currentFilter}, page=0, size=${pageSize})}"
+                   class="page-btn"
+                   th:classappend="${currentPage == 0} ? 'disabled' : ''">
+                    처음
+                </a>
+                <a th:href="@{/chatbot/admin(filter=${currentFilter}, page=${currentPage - 1}, size=${pageSize})}"
+                   class="page-btn"
+                   th:classappend="${currentPage == 0} ? 'disabled' : ''">
+                    이전
+                </a>
+
+                <span class="page-btn active">
+                    [[${currentPage + 1}]] / [[${logs.totalPages}]]
+                </span>
+
+                <a th:href="@{/chatbot/admin(filter=${currentFilter}, page=${currentPage + 1}, size=${pageSize})}"
+                   class="page-btn"
+                   th:classappend="${currentPage + 1 >= logs.totalPages} ? 'disabled' : ''">
+                    다음
+                </a>
+                <a th:href="@{/chatbot/admin(filter=${currentFilter}, page=${logs.totalPages - 1}, size=${pageSize})}"
+                   class="page-btn"
+                   th:classappend="${currentPage + 1 >= logs.totalPages} ? 'disabled' : ''">
+                    마지막
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
