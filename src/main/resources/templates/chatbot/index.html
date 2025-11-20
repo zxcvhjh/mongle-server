@@ -336,13 +336,16 @@
                 content += '<div>답변을 생성하지 못했습니다.</div>';
             }
 
-            // 이미지
-            if (data.hasImages) {
-                content += '<div class="images">';
-                data.images.forEach(img => {
-                    content += `<img src="${escapeHtml(img)}" alt="참고 이미지" onclick="window.open('${escapeHtml(img)}', '_blank')">`;
-                });
-                content += '</div>';
+            // 이미지 (hasImages가 true이고, "No content"가 아닌 실제 이미지만 표시)
+            if (data.hasImages && data.images && data.images.length > 0) {
+                const validImages = data.images.filter(img => img && img !== 'No content' && img.startsWith('http'));
+                if (validImages.length > 0) {
+                    content += '<div class="images">';
+                    validImages.forEach(img => {
+                        content += `<img src="${escapeHtml(img)}" alt="참고 이미지" onclick="window.open('${escapeHtml(img)}', '_blank')">`;
+                    });
+                    content += '</div>';
+                }
             }
 
             // 참고 링크
