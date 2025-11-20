@@ -89,7 +89,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:3000", "https://mongle.site"));
+        config.setAllowedOrigins(List.of(
+            "http://localhost:3000",
+            "https://mongle.site",
+            "https://www.mongle.site"  // www 서브도메인 지원
+        ));
         config.setAllowedMethods(Arrays.asList(
             HttpMethod.GET.name(),
             HttpMethod.POST.name(),
