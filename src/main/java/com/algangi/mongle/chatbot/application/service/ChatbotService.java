@@ -79,7 +79,7 @@ public class ChatbotService {
     private void saveQueryLog(String question, AiAnswerResponse response,
                               long responseTime, boolean isSuccess, String errorMessage) {
         try {
-            ChatbotQueryLog log = ChatbotQueryLog.builder()
+            ChatbotQueryLog queryLog = ChatbotQueryLog.builder()
                 .question(question)
                 .answer(response != null ? response.getAnswer() : null)
                 .hasAnswer(response != null && response.hasAnswer())
@@ -90,7 +90,7 @@ public class ChatbotService {
                 .errorMessage(errorMessage)
                 .build();
 
-            queryLogRepository.save(log);
+            queryLogRepository.save(queryLog);
             log.debug("챗봇 질문-답변 로그 저장 완료: questionLength={}, isSuccess={}",
                 question.length(), isSuccess);
 
