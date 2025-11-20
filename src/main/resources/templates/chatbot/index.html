@@ -317,7 +317,10 @@
             scrollToBottom();
         }
 
-        function addAiMessage(data) {
+        function addAiMessage(response) {
+            // ApiResponse 구조에서 실제 데이터 추출
+            const data = response.data || response;
+
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ai-message';
 
