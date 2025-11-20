@@ -290,17 +290,17 @@
         <!-- 필터 컨트롤 -->
         <div class="controls">
             <span style="font-weight: 600; color: #666;">필터:</span>
-            <a th:href="@{/chatbot/admin(filter='all', page=0, size=${pageSize})}"
+            <a th:href="@{/chatbot/admin(token=${token}, filter='all', page=0, size=${pageSize})}"
                class="filter-btn"
                th:classappend="${currentFilter == 'all'} ? 'active' : ''">
                 전체
             </a>
-            <a th:href="@{/chatbot/admin(filter='success', page=0, size=${pageSize})}"
+            <a th:href="@{/chatbot/admin(token=${token}, filter='success', page=0, size=${pageSize})}"
                class="filter-btn"
                th:classappend="${currentFilter == 'success'} ? 'active' : ''">
                 성공만
             </a>
-            <a th:href="@{/chatbot/admin(filter='failed', page=0, size=${pageSize})}"
+            <a th:href="@{/chatbot/admin(token=${token}, filter='failed', page=0, size=${pageSize})}"
                class="filter-btn"
                th:classappend="${currentFilter == 'failed'} ? 'active' : ''">
                 실패만
@@ -348,12 +348,12 @@
 
             <!-- 페이지네이션 -->
             <div class="pagination" th:if="${logs.hasContent()}">
-                <a th:href="@{/chatbot/admin(filter=${currentFilter}, page=0, size=${pageSize})}"
+                <a th:href="@{/chatbot/admin(token=${token}, filter=${currentFilter}, page=0, size=${pageSize})}"
                    class="page-btn"
                    th:classappend="${currentPage == 0} ? 'disabled' : ''">
                     처음
                 </a>
-                <a th:href="@{/chatbot/admin(filter=${currentFilter}, page=${currentPage - 1}, size=${pageSize})}"
+                <a th:href="@{/chatbot/admin(token=${token}, filter=${currentFilter}, page=${currentPage - 1}, size=${pageSize})}"
                    class="page-btn"
                    th:classappend="${currentPage == 0} ? 'disabled' : ''">
                     이전
@@ -363,12 +363,12 @@
                     [[${currentPage + 1}]] / [[${logs.totalPages}]]
                 </span>
 
-                <a th:href="@{/chatbot/admin(filter=${currentFilter}, page=${currentPage + 1}, size=${pageSize})}"
+                <a th:href="@{/chatbot/admin(token=${token}, filter=${currentFilter}, page=${currentPage + 1}, size=${pageSize})}"
                    class="page-btn"
                    th:classappend="${currentPage + 1 >= logs.totalPages} ? 'disabled' : ''">
                     다음
                 </a>
-                <a th:href="@{/chatbot/admin(filter=${currentFilter}, page=${logs.totalPages - 1}, size=${pageSize})}"
+                <a th:href="@{/chatbot/admin(token=${token}, filter=${currentFilter}, page=${logs.totalPages - 1}, size=${pageSize})}"
                    class="page-btn"
                    th:classappend="${currentPage + 1 >= logs.totalPages} ? 'disabled' : ''">
                     마지막
