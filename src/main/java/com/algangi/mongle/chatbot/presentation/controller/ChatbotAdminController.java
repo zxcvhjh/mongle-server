@@ -61,7 +61,7 @@ public class ChatbotAdminController {
             log.warn("유효하지 않은 토큰으로 관리자 페이지 접근 시도");
             throw new ApplicationException(new ErrorCode() {
                 @Override
-                public HttpStatus getHttpStatus() {
+                public HttpStatus getStatus() {
                     return HttpStatus.UNAUTHORIZED;
                 }
 
@@ -84,7 +84,7 @@ public class ChatbotAdminController {
         Member member = memberRepository.findById(memberId)
             .orElseThrow(() -> new ApplicationException(new ErrorCode() {
                 @Override
-                public HttpStatus getHttpStatus() {
+                public HttpStatus getStatus() {
                     return HttpStatus.FORBIDDEN;
                 }
 
@@ -104,7 +104,7 @@ public class ChatbotAdminController {
             log.warn("ADMIN 권한 없는 사용자의 관리자 페이지 접근 시도: memberId={}", memberId);
             throw new ApplicationException(new ErrorCode() {
                 @Override
-                public HttpStatus getHttpStatus() {
+                public HttpStatus getStatus() {
                     return HttpStatus.FORBIDDEN;
                 }
 
