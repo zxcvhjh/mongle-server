@@ -38,6 +38,17 @@ public class ChatbotViewController {
     }
 
     /**
+     * 이용약관 페이지 렌더링
+     *
+     * @return Thymeleaf 템플릿 이름
+     */
+    @GetMapping("/terms")
+    public String termsPage() {
+        log.info("챗봇 이용약관 페이지 접속");
+        return "chatbot/terms";
+    }
+
+    /**
      * AJAX 요청으로 AI 답변 받기
      *
      * @param request 질문 요청

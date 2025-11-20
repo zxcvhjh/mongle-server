@@ -49,6 +49,16 @@
             opacity: 0.9;
         }
 
+        .chat-header .notice {
+            font-size: 0.75rem;
+            opacity: 0.85;
+            margin-top: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 6px 12px;
+            border-radius: 12px;
+            display: inline-block;
+        }
+
         .chat-messages {
             flex: 1;
             overflow-y: auto;
@@ -202,6 +212,25 @@
             border-color: #ef5350 !important;
         }
 
+        .chat-footer {
+            background: white;
+            padding: 10px 20px;
+            text-align: center;
+            border-top: 1px solid #e0e0e0;
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        .chat-footer a {
+            color: #2F80ED;
+            text-decoration: none;
+            margin: 0 8px;
+        }
+
+        .chat-footer a:hover {
+            text-decoration: underline;
+        }
+
         /* 모바일 반응형 */
         @media (max-width: 768px) {
             .chat-container {
@@ -221,13 +250,15 @@
         <div class="chat-header">
             <h1>경북대 컴퓨터학부 챗봇</h1>
             <p>학사 정보를 물어보세요</p>
+            <div class="notice">💡 각 질문은 독립적으로 처리되며, 이전 대화는 기억하지 않습니다</div>
         </div>
 
         <div class="chat-messages" id="chat-messages">
             <div class="message ai-message">
                 <div class="message-content">
                     안녕하세요! 경북대학교 컴퓨터학부 챗봇입니다.<br>
-                    학사 일정, 공지사항, 교수님 정보 등을 물어보세요.
+                    학사 일정, 공지사항, 교수님 정보 등을 물어보세요.<br><br>
+                    <span style="font-size: 0.85rem; color: #666;">ℹ️ 이 챗봇은 매 질문을 독립적으로 처리하며, 이전 대화 내용을 기억하지 않습니다.</span>
                 </div>
             </div>
         </div>
@@ -235,6 +266,12 @@
         <div class="chat-input-container">
             <input type="text" id="question-input" placeholder="질문을 입력하세요..." autocomplete="off">
             <button id="send-button">전송</button>
+        </div>
+
+        <div class="chat-footer">
+            <a href="/chatbot/terms" target="_blank">이용약관</a>
+            <span>|</span>
+            <span>본 서비스를 이용함으로써 이용약관에 동의하게 됩니다</span>
         </div>
     </div>
 

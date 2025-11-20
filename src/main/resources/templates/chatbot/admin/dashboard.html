@@ -337,7 +337,7 @@
                         <td th:text="${log.hasImages} ? 'O' : 'X'">X</td>
                         <td class="answer-cell" th:text="${log.references}" th:title="${log.references}">-</td>
                         <td class="error-cell" th:text="${log.errorMessage}" th:title="${log.errorMessage}">-</td>
-                        <td th:text="${#temporals.format(log.createdDate, 'yyyy-MM-dd HH:mm:ss')}">2025-11-20 14:30:00</td>
+                        <td th:text="${#temporals.format(log.createdDate, 'yyyy-MM-dd HH:mm:ss', 'Asia/Seoul')}">2025-11-20 14:30:00</td>
                     </tr>
                 </tbody>
             </table>
