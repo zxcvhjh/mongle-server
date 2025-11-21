@@ -63,6 +63,14 @@ mongle:
     manual-s2seed:
       enabled: true
 
+# 로컬 환경용 AI 챗봇 설정 (Public IP 사용)
+ai:
+  chatbot:
+    # 로컬에서는 AI 서버의 Public IP를 환경 변수로 설정해야 합니다
+    base-url: ${AI_CHATBOT_BASE_URL}
+    connect-timeout-millis: 10000
+    read-timeout-millis: 35000
+
 management:
   endpoints:
     web:

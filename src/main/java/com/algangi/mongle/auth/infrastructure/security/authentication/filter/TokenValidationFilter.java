@@ -24,6 +24,12 @@ public class TokenValidationFilter extends OncePerRequestFilter {
     private final AccessTokenManager accessTokenManager;
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path.startsWith("/chatbot") || path.startsWith("/images");
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
         FilterChain filterChain)
         throws ServletException, IOException {

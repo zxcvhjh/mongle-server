@@ -63,6 +63,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/map/**").permitAll()
                 .requestMatchers("/health").permitAll()
                 .requestMatchers("/actuator/prometheus").permitAll()
+                .requestMatchers("/images/**").permitAll()  // 정적 리소스 (파비콘 등)
+                .requestMatchers("/chatbot", "/chatbot/**").permitAll()  // 챗봇 (토큰 검증은 Controller에서)
                 .anyRequest().authenticated()
             )
             .addFilterBefore(tokenValidationFilter, LogoutFilter.class)
@@ -87,7 +89,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:3000", "https://mongle.site"));
+        config.setAllowedOrigins(List.of(
+            "http://localhost:3000",
+            "https://mongle.site",
+            "https://www.mongle.site",
+            "https://api.mongle.site"  // API 서브도메인 지원
+        ));
         config.setAllowedMethods(Arrays.asList(
             HttpMethod.GET.name(),
             HttpMethod.POST.name(),

@@ -105,6 +105,9 @@ dependencies {
 
     // thymeleaf
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
+
+    // Apache HttpClient 5 (RestTemplate timeout 설정용)
+    implementation("org.apache.httpcomponents.client5:httpclient5")
 }
 
 tasks.withType<Test> {
