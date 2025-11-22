@@ -49,10 +49,12 @@ public class AiChatbotClient {
             );
 
             long elapsed = System.currentTimeMillis() - startTime;
-            log.info("AI 서버 응답 완료: {}ms", elapsed);
+            AiAnswerResponse body = response.getBody();
+            log.info("AI 서버 응답 완료: {}ms, answerable={}", elapsed,
+                body != null ? body.getAnswerable() : null);
 
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                return response.getBody();
+            if (response.getStatusCode() == HttpStatus.OK && body != null) {
+                return body;
             } else {
                 throw new AiServerException(ChatbotErrorCode.AI_SERVER_ERROR);
             }
