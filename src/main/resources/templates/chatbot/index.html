@@ -311,7 +311,7 @@
             const loadingMessage = addLoadingMessage();
 
             try {
-                const response = await fetch('/chatbot/ask', {
+                const response = await fetch('/api/v1/chatbot/ask', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
