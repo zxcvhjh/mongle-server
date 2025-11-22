@@ -26,7 +26,9 @@ public class TokenValidationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.startsWith("/chatbot") || path.startsWith("/images");
+        return path.startsWith("/chatbot")
+            || path.startsWith("/api/v1/chatbot")
+            || path.startsWith("/images");
     }
 
     @Override
