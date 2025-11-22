@@ -34,6 +34,11 @@ public class AiAnswerResponse {
      */
     private List<String> images;
 
+    /**
+     * 질문이 답변 가능한지 여부
+     */
+    private Boolean answerable;
+
     public boolean hasAnswer() {
         return answer != null && !answer.trim().isEmpty();
     }

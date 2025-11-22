@@ -45,6 +45,7 @@ public class ChatbotService {
                 .images(aiResponse.getImages())
                 .hasAnswer(aiResponse.hasAnswer())
                 .hasImages(aiResponse.hasImages())
+                .answerable(aiResponse.getAnswerable())
                 .build();
 
             log.info("챗봇 질문 처리 완료: hasAnswer={}, hasImages={}, responseTime={}ms",

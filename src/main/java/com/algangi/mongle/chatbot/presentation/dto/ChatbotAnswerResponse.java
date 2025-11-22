@@ -45,4 +45,9 @@ public class ChatbotAnswerResponse {
      * 이미지가 있는지 확인
      */
     private boolean hasImages;
+
+    /**
+     * 질문이 답변 가능한지 여부
+     */
+    private Boolean answerable;
 }
