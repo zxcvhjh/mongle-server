@@ -376,7 +376,7 @@
 
             // 이미지 (hasImages가 true이고, "No content"가 아닌 실제 이미지만 표시)
             if (data.hasImages && data.images && data.images.length > 0) {
-                const validImages = data.images.filter(img => img && img !== 'No content' && img.startsWith('http'));
+                const validImages = data.images.filter(img => img && img !== 'No content' && (img.startsWith('http') || img.startsWith('data:image/')));
                 if (validImages.length > 0) {
                     content += '<div class="images">';
                     validImages.forEach(img => {
