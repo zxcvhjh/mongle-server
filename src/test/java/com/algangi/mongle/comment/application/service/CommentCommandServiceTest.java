@@ -1,5 +1,22 @@
 package com.algangi.mongle.comment.application.service;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.test.util.ReflectionTestUtils;
+
 import com.algangi.mongle.comment.domain.model.Comment;
 import com.algangi.mongle.comment.domain.repository.CommentRepository;
 import com.algangi.mongle.comment.domain.service.CommentDomainService;
@@ -13,23 +30,9 @@ import com.algangi.mongle.member.domain.model.MemberStatus;
 import com.algangi.mongle.post.application.helper.PostFinder;
 import com.algangi.mongle.post.domain.model.Location;
 import com.algangi.mongle.post.domain.model.Post;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
 /**
- * CommentCommandService 테스트
- * NPE 및 권한 검증 로직 테스트
+ * CommentCommandService 테스트 NPE 및 권한 검증 로직 테스트
  */
 @ExtendWith(MockitoExtension.class)
 class CommentCommandServiceTest {
@@ -126,7 +129,7 @@ class CommentCommandServiceTest {
 
         // then
         verify(commentDomainService, times(1)).deleteComment(anonymousComment);
-        verify(eventPublisher, times(1)).publishEvent(any());
+        verify(eventPublisher, times(1)).publishEvent(any(Object.class));
     }
 
     @Test
@@ -141,30 +144,36 @@ class CommentCommandServiceTest {
 
         // then
         verify(commentDomainService, times(1)).deleteComment(normalComment);
-        verify(eventPublisher, times(1)).publishEvent(any());
+        verify(eventPublisher, times(1)).publishEvent(any(Object.class));
     }
 
     @Test
     @DisplayName("일반 댓글을 다른 사용자가 삭제 시도하면 권한 없음 예외 발생")
     void deleteNormalComment_ByOtherUser_ThrowsAccessDenied() {
         // given
-        Member otherMember = createMember("other-user-id", "otherUser", MemberRole.USER, MemberStatus.ACTIVE);
+        Member otherMember = createMember("other-user-id", "otherUser", MemberRole.USER,
+            MemberStatus.ACTIVE);
         when(memberFinder.getMemberOrThrow("other-user-id")).thenReturn(otherMember);
         when(commentFinder.getCommentOrThrow("comment-id-1")).thenReturn(normalComment);
 
         // when & then
-        assertThatThrownBy(() -> commentCommandService.deleteComment("comment-id-1", "other-user-id"))
+        assertThatThrownBy(
+            () -> commentCommandService.deleteComment("comment-id-1", "other-user-id"))
             .isInstanceOf(ApplicationException.class)
             .hasFieldOrPropertyWithValue("errorCode", CommentErrorCode.COMMENT_ACCESS_DENIED);
 
         verify(commentDomainService, never()).deleteComment(any());
     }
 
-    private Member createMember(String memberId, String nickname, MemberRole role, MemberStatus status) {
+    private Member createMember(String memberId, String nickname, MemberRole role,
+        MemberStatus status) {
         Member member = switch (role) {
             case USER -> Member.createUser("test@example.com", "encodedPassword", nickname, null);
-            case BOOTH -> Member.createBoothAccount(memberId, "test@example.com", "encodedPassword", nickname, null);
-            case ADMIN -> Member.createAdmin(memberId, "test@example.com", nickname, null, "encodedPassword");
+            case BOOTH ->
+                Member.createBoothAccount(memberId, "test@example.com", "encodedPassword", nickname,
+                    null);
+            case ADMIN ->
+                Member.createAdmin(memberId, "test@example.com", nickname, null, "encodedPassword");
         };
         ReflectionTestUtils.setField(member, "memberId", memberId);
         ReflectionTestUtils.setField(member, "status", status);
