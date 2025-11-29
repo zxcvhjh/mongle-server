@@ -558,6 +558,12 @@ GET /api/v1/posts?placeId=place-123&size=20&sortBy=ranking_score
 |--------|--------|----|--------|
 | postId | string | O  | 게시글 ID |
 
+**Query Parameters**
+
+| 파라미터        | 타입      | 필수 | 설명                                    | 기본값  |
+|-------------|---------|----|-----------------------------------------|------|
+| incrementView | boolean | X  | 조회수 증가 여부 (false 시 조회수 증가 안함) | true |
+
 **Response**: `PostDetailResponse`
 
 | 필드                     | 타입       | 설명                       |
@@ -580,9 +586,71 @@ GET /api/v1/posts?placeId=place-123&size=20&sortBy=ranking_score
 | myReaction             | string   | 내 반응 (LIKE/DISLIKE/null) |
 | commentCount           | number   | 댓글 수                     |
 
+**Example Request (조회수 증가)**
+
+```
+GET /api/v1/posts/post-uuid-123
+GET /api/v1/posts/post-uuid-123?incrementView=true
+```
+
+**Example Request (조회수 증가 없음)**
+
+```
+GET /api/v1/posts/post-uuid-123?incrementView=false
+```
+
+**Example Response**
+
+```json
+{
+  "code": "SUCCESS",
+  "message": "요청에 성공하였습니다.",
+  "data": {
+    "postId": "post-uuid-123",
+    "author": {
+      "id": "author-id",
+      "nickname": "작성자닉네임",
+      "profileImageUrl": "https://example.com/profile.jpg"
+    },
+    "content": "게시글 내용입니다",
+    "latitude": 37.5665,
+    "longitude": 126.9780,
+    "photoUrls": ["https://example.com/photo1.jpg"],
+    "videoUrls": [],
+    "createdAt": "2025-11-29T06:37:26.549898Z",
+    "updatedAt": "2025-11-29T06:39:53.330124Z",
+    "viewCount": 123,
+    "likeCount": 10,
+    "dislikeCount": 2,
+    "myReaction": null,
+    "commentCount": 5
+  }
+}
+```
+
+**사용 사례**:
+- `incrementView=true` (기본값): 게시글 진입 시 조회수 증가
+- `incrementView=false`: Flutter 앱에서 게시글 상세 화면을 나갈 때, 조회수를 증가시키지 않고 최신 게시글 정보를 가져와서 게시판 목록을 업데이트할 때 사용
+
 ---
 
-### 3.4 PUT /api/v1/posts/{postId}
+### 3.4 DELETE /api/v1/posts/{postId}
+
+**설명**: 게시글 삭제 <br/>
+**인증**: 필요 <br/>
+**권한**: USER (작성자만 가능)
+
+**Path Parameters**
+
+| 파라미터   | 타입     | 필수 | 설명     |
+|--------|--------|----|--------|
+| postId | string | O  | 게시글 ID |
+
+**Response**: void
+
+---
+
+### 3.5 PUT /api/v1/posts/{postId}
 
 **설명**: 게시글 수정 <br/>
 **인증**: 필요 <br/>
@@ -609,22 +677,6 @@ GET /api/v1/posts?placeId=place-123&size=20&sortBy=ranking_score
 | id          | string  | 게시글 ID |
 | content     | string  | 게시글 내용 |
 | isAnonymous | boolean | 익명 여부  |
-
----
-
-### 3.5 DELETE /api/v1/posts/{postId}
-
-**설명**: 게시글 삭제 <br/>
-**인증**: 필요 <br/>
-**권한**: USER (작성자만 가능)
-
-**Path Parameters**
-
-| 파라미터   | 타입     | 필수 | 설명     |
-|--------|--------|----|--------|
-| postId | string | O  | 게시글 ID |
-
-**Response**: void
 
 ---
 
