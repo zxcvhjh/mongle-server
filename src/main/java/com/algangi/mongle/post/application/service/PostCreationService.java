@@ -1,5 +1,11 @@
 package com.algangi.mongle.post.application.service;
 
+import java.util.Optional;
+
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.algangi.mongle.dynamicCloud.domain.repository.DynamicCloudRepository;
 import com.algangi.mongle.member.application.service.MemberFinder;
 import com.algangi.mongle.member.domain.model.Member;
@@ -11,17 +17,12 @@ import com.algangi.mongle.post.event.PostCreatedEvent;
 import com.algangi.mongle.post.presentation.dto.PostCreateRequest;
 import com.algangi.mongle.post.presentation.dto.PostCreateResponse;
 import com.algangi.mongle.staticCloud.domain.model.StaticCloud;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Optional;
 
 /**
- * 게시글 생성 서비스
- * 책임: 게시글 생성 오케스트레이션
+ * 게시글 생성 서비스 책임: 게시글 생성 오케스트레이션
  */
 @Service
 @RequiredArgsConstructor
@@ -51,7 +52,8 @@ public class PostCreationService {
 
         // 3. 정책 검증 (Rate limiting, 게시글 수 제한)
         policyService.checkRateLimit(author);
-        long existingPostCount = policyService.checkAndHandlePostCountLimit(author);
+        // 게시글 개수 제한 비활성화
+        // long existingPostCount = policyService.checkAndHandlePostCountLimit(author);
 
         // 4. 위치 처리
         Location originalLocation = Location.create(request.latitude(), request.longitude());
@@ -75,13 +77,14 @@ public class PostCreationService {
         // 6. 후처리 (Rate limit 블록, 알림, 이벤트)
         policyService.applyRateLimitBlock(author);
 
-        if (policyService.shouldReceiveNotification(author)) {
-            notificationService.addCreationNotification(
-                savedPost,
-                existingPostCount,
-                policyService.getMaxPostCountPerUser()
-            );
-        }
+        // 알리미 댓글 생성 비활성화
+//        if (policyService.shouldReceiveNotification(author)) {
+//            notificationService.addCreationNotification(
+//                savedPost,
+//                existingPostCount,
+//                policyService.getMaxPostCountPerUser()
+//            );
+//        }
 
         eventPublisher.publishEvent(new PostCreatedEvent(savedPost.getId(), request.fileKeyList()));
 
@@ -94,7 +97,8 @@ public class PostCreationService {
     private PostCreateResponse createBoothPost(PostCreateRequest request, String authorId) {
         policyService.validateBoothPostLimit(authorId);
 
-        String s2TokenId = locationService.generateS2TokenId(request.latitude(), request.longitude());
+        String s2TokenId = locationService.generateS2TokenId(request.latitude(),
+            request.longitude());
         Post boothPost = Post.createNonExpiredStandalone(
             Location.create(request.latitude(), request.longitude()),
             s2TokenId,
