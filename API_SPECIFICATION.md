@@ -582,7 +582,54 @@ GET /api/v1/posts?placeId=place-123&size=20&sortBy=ranking_score
 
 ---
 
-### 3.4 PUT /api/v1/posts/{postId}
+### 3.4 GET /api/v1/posts/{postId}/stats
+
+**설명**: 게시글 통계 조회 (조회수 증가 없음) <br/>
+**인증**: 불필요 <br/>
+**권한**: 없음
+
+**Path Parameters**
+
+| 파라미터   | 타입     | 필수 | 설명     |
+|--------|--------|----|--------|
+| postId | string | O  | 게시글 ID |
+
+**Response**: `PostStatsResponse`
+
+| 필드           | 타입     | 설명    |
+|--------------|--------|-------|
+| viewCount    | number | 조회 수  |
+| commentCount | number | 댓글 수  |
+| likeCount    | number | 좋아요 수 |
+| dislikeCount | number | 싫어요 수 |
+
+**Example Request**
+
+```
+GET /api/v1/posts/post-uuid-123/stats
+```
+
+**Example Response**
+
+```json
+{
+  "code": "SUCCESS",
+  "message": "요청에 성공하였습니다.",
+  "data": {
+    "viewCount": 123,
+    "commentCount": 5,
+    "likeCount": 10,
+    "dislikeCount": 2
+  }
+}
+```
+
+**사용 사례**:
+- Flutter 앱에서 게시글 상세 화면을 나갈 때, 조회수를 증가시키지 않고 최신 통계만 가져와서 게시판 목록을 업데이트할 때 사용
+
+---
+
+### 3.5 PUT /api/v1/posts/{postId}
 
 **설명**: 게시글 수정 <br/>
 **인증**: 필요 <br/>
@@ -612,7 +659,7 @@ GET /api/v1/posts?placeId=place-123&size=20&sortBy=ranking_score
 
 ---
 
-### 3.5 DELETE /api/v1/posts/{postId}
+### 3.6 DELETE /api/v1/posts/{postId}
 
 **설명**: 게시글 삭제 <br/>
 **인증**: 필요 <br/>
@@ -628,7 +675,7 @@ GET /api/v1/posts?placeId=place-123&size=20&sortBy=ranking_score
 
 ---
 
-### 3.6 POST /api/v1/admin/posts
+### 3.7 POST /api/v1/admin/posts
 
 **설명**: 관리자 게시글 작성 <br/>
 **인증**: 필요 <br/>
@@ -651,7 +698,7 @@ GET /api/v1/posts?placeId=place-123&size=20&sortBy=ranking_score
 
 ---
 
-### 3.7 PUT /api/v1/admin/posts/{postId}
+### 3.8 PUT /api/v1/admin/posts/{postId}
 
 **설명**: 관리자 게시글 수정 <br/>
 **인증**: 필요 <br/>
@@ -677,7 +724,7 @@ GET /api/v1/posts?placeId=place-123&size=20&sortBy=ranking_score
 
 ---
 
-### 3.8 DELETE /api/v1/admin/posts/{postId}
+### 3.9 DELETE /api/v1/admin/posts/{postId}
 
 **설명**: 관리자 게시글 삭제 <br/>
 **인증**: 필요 <br/>
@@ -687,7 +734,7 @@ GET /api/v1/posts?placeId=place-123&size=20&sortBy=ranking_score
 
 ---
 
-### 3.9 PATCH /api/v1/admin/posts/{postId}/info-text
+### 3.10 PATCH /api/v1/admin/posts/{postId}/info-text
 
 **설명**: 게시글 정보 텍스트 수정 (관리자 전용) <br/>
 **인증**: 필요 <br/>
@@ -1312,7 +1359,7 @@ GET /api/v1/map/objects?swLat=37.5&swLng=126.9&neLat=37.6&neLng=127.0
 
 - 인증/회원가입: 8개
 - 사용자: 5개
-- 게시글: 9개 (일반 5개, 관리자 4개)
+- 게시글: 10개 (일반 6개, 관리자 4개)
 - 댓글: 5개
 - 반응: 1개
 - 신고: 3개 (일반 1개, 관리자 2개)
@@ -1321,7 +1368,7 @@ GET /api/v1/map/objects?swLat=37.5&swLng=126.9&neLat=37.6&neLng=127.0
 - 부스: 1개
 - 파일: 2개
 
-**총 38개 REST API 엔드포인트**
+**총 39개 REST API 엔드포인트**
 
 ### 주요 특징
 

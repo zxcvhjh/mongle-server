@@ -20,6 +20,7 @@ import com.algangi.mongle.post.presentation.dto.PostDetailResponse;
 import com.algangi.mongle.post.presentation.dto.PostListRequest;
 import com.algangi.mongle.post.presentation.dto.PostListResponse;
 import com.algangi.mongle.post.presentation.dto.PostSort;
+import com.algangi.mongle.post.presentation.dto.PostStatsResponse;
 import com.algangi.mongle.post.presentation.mapper.PostResponseMapper;
 import com.algangi.mongle.postViewLog.application.service.PostViewLogService;
 import com.algangi.mongle.reaction.application.service.ReactionQueryService;
@@ -314,6 +315,21 @@ public class PostQueryService {
                 formattedDate,
                 lastPost.getId());
         }
+    }
+
+    /**
+     * 게시글 통계 조회 (조회수 증가 없음)
+     * 게시글 상세 페이지에서 나갈 때 최신 통계만 업데이트하는 용도로 사용
+     */
+    public PostStatsResponse getPostStats(String postId) {
+        // 게시글 존재 여부만 확인 (조회수 증가 없음)
+        postFinder.getPostOrThrow(postId);
+
+        // Redis에서 통계 조회 (조회수 증가 없음)
+        PostStats stats = statsQueryService.getPostStatsMap(List.of(postId))
+                .getOrDefault(postId, PostStats.empty());
+
+        return PostStatsResponse.from(stats);
     }
 }
 
