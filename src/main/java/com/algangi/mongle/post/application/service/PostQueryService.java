@@ -118,6 +118,8 @@ public class PostQueryService {
 
     @Transactional(readOnly = false)
     public PostDetailResponse getPostDetail(String postId, String currentMemberId, boolean incrementView) {
+        log.info("[PostQueryService] getPostDetail called - postId: {}, incrementView: {}", postId, incrementView);
+
         Post post = postFinder.getPostOrThrow(postId);
 
         if (post.getStatus() == PostStatus.DELETED_BY_USER
@@ -134,6 +136,7 @@ public class PostQueryService {
 
         // ⭐ incrementView 파라미터에 따라 조회수 증가 여부 결정
         if (incrementView) {
+            log.info("[PostQueryService] Incrementing view count for postId: {}", postId);
             contentStatsService.incrementPostViewCount(postId);
             eventPublisher.publishEvent(new PostViewedEvent(postId));
 
@@ -146,6 +149,8 @@ public class PostQueryService {
 
                 eventPublisher.publishEvent(new MemberViewedPostEvent(currentMemberId, postId));
             }
+        } else {
+            log.info("[PostQueryService] Skipping view count increment for postId: {} (incrementView=false)", postId);
         }
 
         PostStats stats = statsQueryService.getPostStatsMap(List.of(postId))

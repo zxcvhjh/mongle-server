@@ -27,11 +27,13 @@ import com.algangi.mongle.post.presentation.dto.PostUpdateResponse;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 게시글 API 컨트롤러
  * ApiResponseAdvice에 의해 자동으로 ApiResponse로 래핑됨
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -62,6 +64,7 @@ public class PostController {
         @PathVariable String postId,
         @RequestParam(defaultValue = "true") boolean incrementView,
         @AuthenticationPrincipal CustomUserDetails user) {
+        log.info("[PostController] GET /posts/{} - incrementView: {}", postId, incrementView);
         String memberId = (user != null) ? user.userId() : null;
         return postQueryService.getPostDetail(postId, memberId, incrementView);
     }
