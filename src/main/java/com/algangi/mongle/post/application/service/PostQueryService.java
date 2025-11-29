@@ -117,7 +117,7 @@ public class PostQueryService {
     }
 
     @Transactional(readOnly = false)
-    public PostDetailResponse getPostDetail(String postId, String currentMemberId) {
+    public PostDetailResponse getPostDetail(String postId, String currentMemberId, boolean incrementView) {
         Post post = postFinder.getPostOrThrow(postId);
 
         if (post.getStatus() == PostStatus.DELETED_BY_USER
@@ -132,17 +132,20 @@ public class PostQueryService {
                 post.getAuthorId());
         }
 
-        contentStatsService.incrementPostViewCount(postId);
-        eventPublisher.publishEvent(new PostViewedEvent(postId));
+        // ⭐ incrementView 파라미터에 따라 조회수 증가 여부 결정
+        if (incrementView) {
+            contentStatsService.incrementPostViewCount(postId);
+            eventPublisher.publishEvent(new PostViewedEvent(postId));
 
-        if (StringUtils.hasText(currentMemberId)) {
-            try {
-                postViewLogService.recordView(currentMemberId, postId);
-            } catch (Exception e) {
-                log.warn("Failed to record view in Redis.", e);
+            if (StringUtils.hasText(currentMemberId)) {
+                try {
+                    postViewLogService.recordView(currentMemberId, postId);
+                } catch (Exception e) {
+                    log.warn("Failed to record view in Redis.", e);
+                }
+
+                eventPublisher.publishEvent(new MemberViewedPostEvent(currentMemberId, postId));
             }
-
-            eventPublisher.publishEvent(new MemberViewedPostEvent(currentMemberId, postId));
         }
 
         PostStats stats = statsQueryService.getPostStatsMap(List.of(postId))
@@ -314,63 +317,6 @@ public class PostQueryService {
                 formattedDate,
                 lastPost.getId());
         }
-    }
-
-    /**
-     * 게시글 상세 조회 (조회수 증가 없음)
-     * 게시글 상세 페이지에서 나갈 때 최신 데이터를 가져와서 게시판 목록을 업데이트하는 용도
-     * getPostDetail()과 동일한 응답을 반환하지만, 조회수를 증가시키지 않음
-     */
-    public PostDetailResponse getPostStats(String postId, String currentMemberId) {
-        Post post = postFinder.getPostOrThrow(postId);
-
-        if (post.getStatus() == PostStatus.DELETED_BY_USER
-            || post.getStatus() == PostStatus.DELETED_BY_ADMIN
-            || post.getStatus() == PostStatus.DELETED_BY_WITHDRAWAL) {
-            return PostDetailResponse.deleted();
-        }
-
-        Member author = null;
-        if (StringUtils.hasText(post.getAuthorId())) {
-            author = memberFinder.getMemberOrThrow(post.getAuthorId());
-        }
-
-        // ⭐ 조회수 증가 없음 - getPostDetail()과의 차이점
-        // contentStatsService.incrementPostViewCount(postId);
-        // eventPublisher.publishEvent(new PostViewedEvent(postId));
-
-        // ⭐ 조회 기록 저장 없음
-        // if (StringUtils.hasText(currentMemberId)) {
-        //     postViewLogService.recordView(currentMemberId, postId);
-        //     eventPublisher.publishEvent(new MemberViewedPostEvent(currentMemberId, postId));
-        // }
-
-        PostStats stats = statsQueryService.getPostStatsMap(List.of(postId))
-            .getOrDefault(postId, PostStats.empty());
-
-        Map<String, ReactionType> myReactionsMap = reactionQueryService.getMyReactions(
-            TargetType.POST,
-            List.of(postId),
-            currentMemberId
-        );
-        ReactionType myReaction = myReactionsMap.get(postId);
-        String myReactionStr = (myReaction != null) ? myReaction.name() : null;
-
-        PostDetailResponse.Author authorDto = createDetailAuthorDto(post, author);
-
-        List<String> photoKeys = post.getPostFiles().stream()
-            .map(PostFile::getFileKey)
-            .filter(key -> key.startsWith(FilePathConstants.POST_IMAGES_PATH))
-            .toList();
-        List<String> videoKeys = post.getPostFiles().stream()
-            .map(PostFile::getFileKey)
-            .filter(key -> key.startsWith(FilePathConstants.POST_VIDEOS_PATH))
-            .toList();
-
-        List<String> photoUrls = issueFileUrls(photoKeys);
-        List<String> videoUrls = issueFileUrls(videoKeys);
-
-        return PostDetailResponse.from(post, authorDto, stats, photoUrls, videoUrls, myReactionStr);
     }
 }
 

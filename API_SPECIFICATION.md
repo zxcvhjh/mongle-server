@@ -558,6 +558,12 @@ GET /api/v1/posts?placeId=place-123&size=20&sortBy=ranking_score
 |--------|--------|----|--------|
 | postId | string | O  | 게시글 ID |
 
+**Query Parameters**
+
+| 파라미터        | 타입      | 필수 | 설명                                    | 기본값  |
+|-------------|---------|----|-----------------------------------------|------|
+| incrementView | boolean | X  | 조회수 증가 여부 (false 시 조회수 증가 안함) | true |
+
 **Response**: `PostDetailResponse`
 
 | 필드                     | 타입       | 설명                       |
@@ -580,46 +586,17 @@ GET /api/v1/posts?placeId=place-123&size=20&sortBy=ranking_score
 | myReaction             | string   | 내 반응 (LIKE/DISLIKE/null) |
 | commentCount           | number   | 댓글 수                     |
 
----
-
-### 3.4 GET /api/v1/posts/{postId}/stats
-
-**설명**: 게시글 상세 조회 (조회수 증가 없음) <br/>
-**인증**: 선택 (인증 시 좋아요 등 개인화 정보 포함) <br/>
-**권한**: 없음
-
-**Path Parameters**
-
-| 파라미터   | 타입     | 필수 | 설명     |
-|--------|--------|----|--------|
-| postId | string | O  | 게시글 ID |
-
-**Response**: `PostDetailResponse` (3.3과 동일)
-
-| 필드                     | 타입       | 설명                       |
-|------------------------|----------|--------------------------|
-| postId                 | string   | 게시글 ID                   |
-| author                 | object   | 작성자 정보                   |
-| author.id              | string   | 작성자 ID                   |
-| author.nickname        | string   | 작성자 닉네임                  |
-| author.profileImageUrl | string   | 작성자 프로필 이미지 URL          |
-| content                | string   | 게시글 내용                   |
-| latitude               | number   | 위도                       |
-| longitude              | number   | 경도                       |
-| photoUrls              | string[] | 사진 URL 목록                |
-| videoUrls              | string[] | 비디오 URL 목록               |
-| createdAt              | string   | 생성 일시 (ISO-8601)         |
-| updatedAt              | string   | 수정 일시 (ISO-8601)         |
-| viewCount              | number   | 조회 수                     |
-| likeCount              | number   | 좋아요 수                    |
-| dislikeCount           | number   | 싫어요 수                    |
-| myReaction             | string   | 내 반응 (LIKE/DISLIKE/null) |
-| commentCount           | number   | 댓글 수                     |
-
-**Example Request**
+**Example Request (조회수 증가)**
 
 ```
-GET /api/v1/posts/post-uuid-123/stats
+GET /api/v1/posts/post-uuid-123
+GET /api/v1/posts/post-uuid-123?incrementView=true
+```
+
+**Example Request (조회수 증가 없음)**
+
+```
+GET /api/v1/posts/post-uuid-123?incrementView=false
 ```
 
 **Example Response**
@@ -652,8 +629,24 @@ GET /api/v1/posts/post-uuid-123/stats
 ```
 
 **사용 사례**:
-- Flutter 앱에서 게시글 상세 화면을 나갈 때, 조회수를 증가시키지 않고 최신 게시글 정보를 가져와서 게시판 목록을 업데이트할 때 사용
-- `GET /api/v1/posts/{postId}`와 응답 형식은 동일하지만, 조회수가 증가하지 않는 것이 차이점
+- `incrementView=true` (기본값): 게시글 진입 시 조회수 증가
+- `incrementView=false`: Flutter 앱에서 게시글 상세 화면을 나갈 때, 조회수를 증가시키지 않고 최신 게시글 정보를 가져와서 게시판 목록을 업데이트할 때 사용
+
+---
+
+### 3.4 DELETE /api/v1/posts/{postId}
+
+**설명**: 게시글 삭제 <br/>
+**인증**: 필요 <br/>
+**권한**: USER (작성자만 가능)
+
+**Path Parameters**
+
+| 파라미터   | 타입     | 필수 | 설명     |
+|--------|--------|----|--------|
+| postId | string | O  | 게시글 ID |
+
+**Response**: void
 
 ---
 
@@ -687,23 +680,7 @@ GET /api/v1/posts/post-uuid-123/stats
 
 ---
 
-### 3.6 DELETE /api/v1/posts/{postId}
-
-**설명**: 게시글 삭제 <br/>
-**인증**: 필요 <br/>
-**권한**: USER (작성자만 가능)
-
-**Path Parameters**
-
-| 파라미터   | 타입     | 필수 | 설명     |
-|--------|--------|----|--------|
-| postId | string | O  | 게시글 ID |
-
-**Response**: void
-
----
-
-### 3.7 POST /api/v1/admin/posts
+### 3.6 POST /api/v1/admin/posts
 
 **설명**: 관리자 게시글 작성 <br/>
 **인증**: 필요 <br/>
@@ -726,7 +703,7 @@ GET /api/v1/posts/post-uuid-123/stats
 
 ---
 
-### 3.8 PUT /api/v1/admin/posts/{postId}
+### 3.7 PUT /api/v1/admin/posts/{postId}
 
 **설명**: 관리자 게시글 수정 <br/>
 **인증**: 필요 <br/>
@@ -752,7 +729,7 @@ GET /api/v1/posts/post-uuid-123/stats
 
 ---
 
-### 3.9 DELETE /api/v1/admin/posts/{postId}
+### 3.8 DELETE /api/v1/admin/posts/{postId}
 
 **설명**: 관리자 게시글 삭제 <br/>
 **인증**: 필요 <br/>
@@ -762,7 +739,7 @@ GET /api/v1/posts/post-uuid-123/stats
 
 ---
 
-### 3.10 PATCH /api/v1/admin/posts/{postId}/info-text
+### 3.9 PATCH /api/v1/admin/posts/{postId}/info-text
 
 **설명**: 게시글 정보 텍스트 수정 (관리자 전용) <br/>
 **인증**: 필요 <br/>
@@ -1387,7 +1364,7 @@ GET /api/v1/map/objects?swLat=37.5&swLng=126.9&neLat=37.6&neLng=127.0
 
 - 인증/회원가입: 8개
 - 사용자: 5개
-- 게시글: 10개 (일반 6개, 관리자 4개)
+- 게시글: 9개 (일반 5개, 관리자 4개)
 - 댓글: 5개
 - 반응: 1개
 - 신고: 3개 (일반 1개, 관리자 2개)
@@ -1396,7 +1373,7 @@ GET /api/v1/map/objects?swLat=37.5&swLng=126.9&neLat=37.6&neLng=127.0
 - 부스: 1개
 - 파일: 2개
 
-**총 39개 REST API 엔드포인트**
+**총 38개 REST API 엔드포인트**
 
 ### 주요 특징
 

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.algangi.mongle.auth.infrastructure.security.authentication.CustomUserDetails;
@@ -59,17 +60,10 @@ public class PostController {
     @GetMapping("/posts/{postId}")
     public PostDetailResponse getPostDetail(
         @PathVariable String postId,
+        @RequestParam(defaultValue = "true") boolean incrementView,
         @AuthenticationPrincipal CustomUserDetails user) {
         String memberId = (user != null) ? user.userId() : null;
-        return postQueryService.getPostDetail(postId, memberId);
-    }
-
-    @GetMapping("/posts/{postId}/stats")
-    public PostDetailResponse getPostStats(
-        @PathVariable String postId,
-        @AuthenticationPrincipal CustomUserDetails user) {
-        String memberId = (user != null) ? user.userId() : null;
-        return postQueryService.getPostStats(postId, memberId);
+        return postQueryService.getPostDetail(postId, memberId, incrementView);
     }
 
     @DeleteMapping("/posts/{postId}")
