@@ -1,6 +1,5 @@
 package com.algangi.mongle.post.infrastructure.scheduler;
 
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,7 +17,7 @@ public class PostExpirationScheduler {
 
     private final PostRepository postRepository;
 
-    @Scheduled(cron = "0 */5 * * * *")
+    //@Scheduled(cron = "0 */5 * * * *")
     @SchedulerLock(
         name = "deleteExpiredPostsLock",
         lockAtLeastFor = "PT5M",
