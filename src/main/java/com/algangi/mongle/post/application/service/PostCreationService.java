@@ -77,13 +77,14 @@ public class PostCreationService {
         // 6. 후처리 (Rate limit 블록, 알림, 이벤트)
         policyService.applyRateLimitBlock(author);
 
-        if (policyService.shouldReceiveNotification(author)) {
-            notificationService.addCreationNotification(
-                savedPost,
-                existingPostCount,
-                policyService.getMaxPostCountPerUser()
-            );
-        }
+        // 알리미 댓글 생성 비활성화
+//        if (policyService.shouldReceiveNotification(author)) {
+//            notificationService.addCreationNotification(
+//                savedPost,
+//                existingPostCount,
+//                policyService.getMaxPostCountPerUser()
+//            );
+//        }
 
         eventPublisher.publishEvent(new PostCreatedEvent(savedPost.getId(), request.fileKeyList()));
 
