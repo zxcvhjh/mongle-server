@@ -21,7 +21,6 @@ import com.algangi.mongle.post.presentation.dto.PostCreateResponse;
 import com.algangi.mongle.post.presentation.dto.PostDetailResponse;
 import com.algangi.mongle.post.presentation.dto.PostListRequest;
 import com.algangi.mongle.post.presentation.dto.PostListResponse;
-import com.algangi.mongle.post.presentation.dto.PostStatsResponse;
 import com.algangi.mongle.post.presentation.dto.PostUpdateRequest;
 import com.algangi.mongle.post.presentation.dto.PostUpdateResponse;
 
@@ -66,9 +65,11 @@ public class PostController {
     }
 
     @GetMapping("/posts/{postId}/stats")
-    public PostStatsResponse getPostStats(
-        @PathVariable String postId) {
-        return postQueryService.getPostStats(postId);
+    public PostDetailResponse getPostStats(
+        @PathVariable String postId,
+        @AuthenticationPrincipal CustomUserDetails user) {
+        String memberId = (user != null) ? user.userId() : null;
+        return postQueryService.getPostStats(postId, memberId);
     }
 
     @DeleteMapping("/posts/{postId}")

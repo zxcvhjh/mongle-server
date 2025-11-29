@@ -584,8 +584,8 @@ GET /api/v1/posts?placeId=place-123&size=20&sortBy=ranking_score
 
 ### 3.4 GET /api/v1/posts/{postId}/stats
 
-**설명**: 게시글 통계 조회 (조회수 증가 없음) <br/>
-**인증**: 불필요 <br/>
+**설명**: 게시글 상세 조회 (조회수 증가 없음) <br/>
+**인증**: 선택 (인증 시 좋아요 등 개인화 정보 포함) <br/>
 **권한**: 없음
 
 **Path Parameters**
@@ -594,14 +594,27 @@ GET /api/v1/posts?placeId=place-123&size=20&sortBy=ranking_score
 |--------|--------|----|--------|
 | postId | string | O  | 게시글 ID |
 
-**Response**: `PostStatsResponse`
+**Response**: `PostDetailResponse` (3.3과 동일)
 
-| 필드           | 타입     | 설명    |
-|--------------|--------|-------|
-| viewCount    | number | 조회 수  |
-| commentCount | number | 댓글 수  |
-| likeCount    | number | 좋아요 수 |
-| dislikeCount | number | 싫어요 수 |
+| 필드                     | 타입       | 설명                       |
+|------------------------|----------|--------------------------|
+| postId                 | string   | 게시글 ID                   |
+| author                 | object   | 작성자 정보                   |
+| author.id              | string   | 작성자 ID                   |
+| author.nickname        | string   | 작성자 닉네임                  |
+| author.profileImageUrl | string   | 작성자 프로필 이미지 URL          |
+| content                | string   | 게시글 내용                   |
+| latitude               | number   | 위도                       |
+| longitude              | number   | 경도                       |
+| photoUrls              | string[] | 사진 URL 목록                |
+| videoUrls              | string[] | 비디오 URL 목록               |
+| createdAt              | string   | 생성 일시 (ISO-8601)         |
+| updatedAt              | string   | 수정 일시 (ISO-8601)         |
+| viewCount              | number   | 조회 수                     |
+| likeCount              | number   | 좋아요 수                    |
+| dislikeCount           | number   | 싫어요 수                    |
+| myReaction             | string   | 내 반응 (LIKE/DISLIKE/null) |
+| commentCount           | number   | 댓글 수                     |
 
 **Example Request**
 
@@ -616,16 +629,31 @@ GET /api/v1/posts/post-uuid-123/stats
   "code": "SUCCESS",
   "message": "요청에 성공하였습니다.",
   "data": {
+    "postId": "post-uuid-123",
+    "author": {
+      "id": "author-id",
+      "nickname": "작성자닉네임",
+      "profileImageUrl": "https://example.com/profile.jpg"
+    },
+    "content": "게시글 내용입니다",
+    "latitude": 37.5665,
+    "longitude": 126.9780,
+    "photoUrls": ["https://example.com/photo1.jpg"],
+    "videoUrls": [],
+    "createdAt": "2025-11-29T06:37:26.549898Z",
+    "updatedAt": "2025-11-29T06:39:53.330124Z",
     "viewCount": 123,
-    "commentCount": 5,
     "likeCount": 10,
-    "dislikeCount": 2
+    "dislikeCount": 2,
+    "myReaction": null,
+    "commentCount": 5
   }
 }
 ```
 
 **사용 사례**:
-- Flutter 앱에서 게시글 상세 화면을 나갈 때, 조회수를 증가시키지 않고 최신 통계만 가져와서 게시판 목록을 업데이트할 때 사용
+- Flutter 앱에서 게시글 상세 화면을 나갈 때, 조회수를 증가시키지 않고 최신 게시글 정보를 가져와서 게시판 목록을 업데이트할 때 사용
+- `GET /api/v1/posts/{postId}`와 응답 형식은 동일하지만, 조회수가 증가하지 않는 것이 차이점
 
 ---
 
