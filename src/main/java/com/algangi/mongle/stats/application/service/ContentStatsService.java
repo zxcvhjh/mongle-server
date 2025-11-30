@@ -285,6 +285,11 @@ public class ContentStatsService {
 
         List<?> list = (List<?>) rawResult;
 
+        if (list.size() < 2) {
+            log.error("Lua 스크립트 결과 크기 오류. 기대값: 2 이상, 실제값: {}", list.size());
+            throw new IllegalStateException("Redis Lua 스크립트 결과가 충분하지 않습니다.");
+        }
+
         Long likes = extractLong(list.get(0));
         Long dislikes = extractLong(list.get(1));
 
