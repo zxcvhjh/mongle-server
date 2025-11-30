@@ -223,7 +223,8 @@ public class ContentStatsService {
                 memberId,
                 reaction.reactionType().name(),
                 reaction.targetType().name(),
-                reaction.targetId()
+                reaction.targetId(),
+                TRACKING_SET_TTL_SECONDS
         };
     }
 
