@@ -14,15 +14,45 @@ public class StatsSyncScheduler {
 
     private final StatsSyncService statsSyncService;
 
-    // @Scheduled(cron = "0 */10 * * * *")
-    @SchedulerLock(name = "runScheduledStatsSync", lockAtLeastFor = "PT5M", lockAtMostFor = "PT15M")
-    public void runScheduledStatsSync() {
-        log.info("ShedLock으로 보호된 통계 동기화 작업을 시작합니다.");
+    @Scheduled(cron = "30 */2 * * * *")
+    @SchedulerLock(
+            name = "syncCommentsToDb",
+            lockAtLeastFor = "PT30S",
+            lockAtMostFor = "PT1M55S"
+    )
+    public void syncComments() {
+        try {
+            statsSyncService.syncPostCommentCountsToDb();
+        } catch (Exception e) {
+            log.error("[Scheduler] 댓글 수 동기화 실패", e);
+        }
+    }
 
-        statsSyncService.syncPostCommentCountsToDb();
-        statsSyncService.syncPostViewCountsToRedis();
-        statsSyncService.syncReactionCountsToRedis();
+    @Scheduled(cron = "15 */5 * * * *")
+    @SchedulerLock(
+            name = "syncViewsToDb",
+            lockAtLeastFor = "PT1M",
+            lockAtMostFor = "PT4M55S"
+    )
+    public void syncViews() {
+        try {
+            statsSyncService.syncPostViewCountsToDb();
+        } catch (Exception e) {
+            log.error("[Scheduler] 조회수 동기화 실패", e);
+        }
+    }
 
-        log.info("통계 동기화 작업을 완료했습니다.");
+    @Scheduled(cron = "0 */1 * * * *")
+    @SchedulerLock(
+            name = "syncReactionsToDb",
+            lockAtLeastFor = "PT15S",
+            lockAtMostFor = "PT55S"
+    )
+    public void syncReactions() {
+        try {
+            statsSyncService.syncReactionCountsToDb();
+        } catch (Exception e) {
+            log.error("[Scheduler] 반응 수 동기화 실패", e);
+        }
     }
 }

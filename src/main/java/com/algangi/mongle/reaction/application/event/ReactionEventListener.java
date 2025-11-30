@@ -30,7 +30,7 @@ public class ReactionEventListener {
     private final PostRepository postRepository;
     private final MemberFinder memberFinder;
 
-    /*@Async("persistenceTaskExecutor")
+    @Async("persistenceTaskExecutor")
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleReactionUpdate(ReactionUpdatedEvent event) {
@@ -145,6 +145,6 @@ public class ReactionEventListener {
             postRepository.saveAndFlush(post);
             return true;
         }).orElseThrow(() -> new ApplicationException(PostErrorCode.POST_NOT_FOUND));
-    }*/
+    }
 
 }
