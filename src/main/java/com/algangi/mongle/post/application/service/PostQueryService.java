@@ -13,8 +13,6 @@ import com.algangi.mongle.post.domain.model.Post;
 import com.algangi.mongle.post.domain.model.PostFile;
 import com.algangi.mongle.post.domain.model.PostStatus;
 import com.algangi.mongle.post.domain.repository.PostQueryRepository;
-import com.algangi.mongle.post.event.MemberViewedPostEvent;
-import com.algangi.mongle.post.event.PostViewedEvent;
 import com.algangi.mongle.post.exception.PostErrorCode;
 import com.algangi.mongle.post.presentation.dto.PostDetailResponse;
 import com.algangi.mongle.post.presentation.dto.PostListRequest;
@@ -31,7 +29,6 @@ import com.algangi.mongle.stats.application.service.ContentStatsService;
 import com.algangi.mongle.stats.application.service.StatsQueryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -54,7 +51,6 @@ public class PostQueryService {
     private final MemberFinder memberFinder;
     private final PostQueryRepository postQueryRepository;
     private final ViewUrlIssueService viewUrlIssueService;
-    private final ApplicationEventPublisher eventPublisher;
     private final ContentStatsService contentStatsService;
     private final StatsQueryService statsQueryService;
     private final BlockQueryService blockQueryService;
@@ -138,7 +134,6 @@ public class PostQueryService {
         if (incrementView) {
             log.info("[PostQueryService] Incrementing view count for postId: {}", postId);
             contentStatsService.incrementPostViewCount(postId);
-            eventPublisher.publishEvent(new PostViewedEvent(postId));
 
             if (StringUtils.hasText(currentMemberId)) {
                 try {
@@ -146,8 +141,6 @@ public class PostQueryService {
                 } catch (Exception e) {
                     log.warn("Failed to record view in Redis.", e);
                 }
-
-                eventPublisher.publishEvent(new MemberViewedPostEvent(currentMemberId, postId));
             }
         } else {
             log.info("[PostQueryService] Skipping view count increment for postId: {} (incrementView=false)", postId);

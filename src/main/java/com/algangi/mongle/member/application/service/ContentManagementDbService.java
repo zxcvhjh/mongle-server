@@ -37,11 +37,7 @@ public class ContentManagementDbService {
 
     @Transactional
     public void updateWithdrawnUserCommentsInDb(List<String> commentIds) {
-        // [수정] Map<String, Long> postCommentCountDelta 파라미터 제거
         commentRepository.updateStatusForIds(commentIds, CommentStatus.DELETED_BY_WITHDRAWAL);
-
-        // [삭제] 이 코드가 모든 버그의 원흉입니다.
-        // postCommentCountDelta.forEach(postRepository::decrementCommentCount);
     }
 
     @Transactional
