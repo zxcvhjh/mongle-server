@@ -36,10 +36,8 @@ public class ContentManagementDbService {
     }
 
     @Transactional
-    public void updateWithdrawnUserCommentsInDb(List<String> commentIds,
-                                                Map<String, Long> postCommentCountDelta) {
+    public void updateWithdrawnUserCommentsInDb(List<String> commentIds) {
         commentRepository.updateStatusForIds(commentIds, CommentStatus.DELETED_BY_WITHDRAWAL);
-        postCommentCountDelta.forEach(postRepository::decrementCommentCount);
     }
 
     @Transactional

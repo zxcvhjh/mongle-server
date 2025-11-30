@@ -9,6 +9,9 @@ services:
         condition: service_healthy
     ports:
       - "8080:8080"
+    mem_limit: 4g
+    environment:
+      - JAVA_OPTS=-Xms1g -Xmx3g
     env_file:
       - .env
     networks:

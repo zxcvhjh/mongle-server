@@ -1,22 +1,6 @@
 package com.algangi.mongle.comment.application.service;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.test.util.ReflectionTestUtils;
-
+import com.algangi.mongle.comment.application.event.CommentDeletedEvent;
 import com.algangi.mongle.comment.domain.model.Comment;
 import com.algangi.mongle.comment.domain.repository.CommentRepository;
 import com.algangi.mongle.comment.domain.service.CommentDomainService;
@@ -30,6 +14,21 @@ import com.algangi.mongle.member.domain.model.MemberStatus;
 import com.algangi.mongle.post.application.helper.PostFinder;
 import com.algangi.mongle.post.domain.model.Location;
 import com.algangi.mongle.post.domain.model.Post;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 /**
  * CommentCommandService 테스트 NPE 및 권한 검증 로직 테스트
@@ -80,6 +79,7 @@ class CommentCommandServiceTest {
             "author-id",
             false
         );
+        ReflectionTestUtils.setField(testPost, "id", "post-id-abc");
 
         // 일반 댓글 생성 (member 설정됨)
         normalComment = Comment.createParentComment(
@@ -129,7 +129,13 @@ class CommentCommandServiceTest {
 
         // then
         verify(commentDomainService, times(1)).deleteComment(anonymousComment);
-        verify(eventPublisher, times(1)).publishEvent(any(Object.class));
+
+        ArgumentCaptor<CommentDeletedEvent> eventCaptor = ArgumentCaptor.forClass(CommentDeletedEvent.class);
+        verify(eventPublisher, times(1)).publishEvent(eventCaptor.capture());
+
+        CommentDeletedEvent capturedEvent = eventCaptor.getValue();
+        assertThat(capturedEvent.commentId()).isEqualTo("comment-id-2");
+        assertThat(capturedEvent.postId()).isEqualTo("post-id-abc");
     }
 
     @Test
@@ -144,7 +150,13 @@ class CommentCommandServiceTest {
 
         // then
         verify(commentDomainService, times(1)).deleteComment(normalComment);
-        verify(eventPublisher, times(1)).publishEvent(any(Object.class));
+        
+        ArgumentCaptor<CommentDeletedEvent> eventCaptor = ArgumentCaptor.forClass(CommentDeletedEvent.class);
+        verify(eventPublisher, times(1)).publishEvent(eventCaptor.capture());
+
+        CommentDeletedEvent capturedEvent = eventCaptor.getValue();
+        assertThat(capturedEvent.commentId()).isEqualTo("comment-id-1");
+        assertThat(capturedEvent.postId()).isEqualTo("post-id-abc");
     }
 
     @Test

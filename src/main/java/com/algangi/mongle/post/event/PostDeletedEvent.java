@@ -1,7 +1,5 @@
 package com.algangi.mongle.post.event;
 
-public record PostViewedEvent(
+public record PostDeletedEvent(
         String postId
-) {
-
-}
+) {}

@@ -47,23 +47,40 @@ public class RedisConfig {
     }
 
     @Bean
-    @SuppressWarnings("rawtypes")
-    public RedisScript<List> reactionScript() {
-        ClassPathResource scriptResource = new ClassPathResource("redis/reaction.lua");
-
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public RedisScript<List<Long>> reactionScript() {
         DefaultRedisScript<List> redisScript = new DefaultRedisScript<>();
-        redisScript.setScriptSource(new ResourceScriptSource(scriptResource));
-
+        redisScript.setScriptSource(
+                new ResourceScriptSource(new ClassPathResource("redis/reaction.lua"))
+        );
         redisScript.setResultType(List.class);
+        return (RedisScript<List<Long>>) (RedisScript) redisScript;
+    }
+
+    @Bean
+    public RedisScript<Long> removeReactionAtomicScript() {
+        ClassPathResource scriptResource = new ClassPathResource("redis/remove_reaction_atomic.lua");
+        DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>();
+        redisScript.setScriptSource(new ResourceScriptSource(scriptResource));
+        redisScript.setResultType(Long.class);
         return redisScript;
     }
 
     @Bean
-    public RedisScript<Long> decrementScript() {
-        ClassPathResource scriptResource = new ClassPathResource("redis/decrement.lua");
+    public RedisScript<Long> decrAndSaddScript() {
+        ClassPathResource scriptResource = new ClassPathResource("redis/decr_sadd_expire_nx.lua");
         DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>();
         redisScript.setScriptSource(new ResourceScriptSource(scriptResource));
         redisScript.setResultType(Long.class);
+        return redisScript;
+    }
+
+    @Bean
+    public RedisScript<Void> incrAndSaddScript() {
+        ClassPathResource scriptResource = new ClassPathResource("redis/incr_sadd_expire_nx.lua");
+        DefaultRedisScript<Void> redisScript = new DefaultRedisScript<>();
+        redisScript.setScriptSource(new ResourceScriptSource(scriptResource));
+        redisScript.setResultType(Void.class);
         return redisScript;
     }
 
