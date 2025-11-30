@@ -30,6 +30,14 @@ public class StatsSyncService {
     private static final int PROCESSING_BATCH_SIZE = 300;
     private static final int MAX_KEYS_PER_SYNC = 10000;
 
+    private static final java.util.Set<String> ALLOWED_TABLES =
+            java.util.Set.of("post", "comment");
+
+    private static final java.util.Set<String> ALLOWED_COLUMNS =
+            java.util.Set.of(
+                    "view_count", "comment_count", "like_count", "dislike_count"
+            );
+
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void syncPostCommentCountsToDb() {
         log.info("[Sync] 게시물 댓글 수 동기화 시작");
@@ -228,6 +236,12 @@ public class StatsSyncService {
     ) {
         if (batchArgs.isEmpty()) {
             return;
+        }
+
+        if (!ALLOWED_TABLES.contains(tableName) || !ALLOWED_COLUMNS.contains(columnName)) {
+            log.error("[Sync] ⚠ 허용되지 않은 테이블/컬럼명 감지 - Table: {}, Column: {}",
+                    tableName, columnName);
+            throw new IllegalArgumentException("Invalid or non-whitelisted table/column name");
         }
 
         String sql = String.format(
