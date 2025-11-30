@@ -144,7 +144,7 @@ public class StatsSyncService {
             log.info("[Sync]   ✓ Pipeline 조회 완료 - {}개", values.size());
 
             // 2. DB 배치 준비
-            buildDbBatchArgs(counterKeys, values, dbBatchArgs);
+            List<String> processedKeys = buildDbBatchArgs(counterKeys, values, dbBatchArgs);
             log.info("[Sync]   ✓ DB 배치 준비 완료 - 유효: {}/{}개", dbBatchArgs.size(), counterKeys.size());
 
             // 3. DB UPSERT
@@ -161,8 +161,8 @@ public class StatsSyncService {
             }
 
             // 4. 추적 SET에서 제거 (DB 업데이트 성공 건만 제거)
-            if (!counterKeys.isEmpty()) {
-                Long removed = redisTemplate.opsForSet().remove(trackingSetKey, counterKeys.toArray());
+            if (!processedKeys.isEmpty()) {
+                Long removed = redisTemplate.opsForSet().remove(trackingSetKey, processedKeys.toArray());
                 log.info("[Sync]   ✓ 추적 SET 정리 완료 - 제거: {}건", removed);
             }
 
@@ -189,11 +189,13 @@ public class StatsSyncService {
         );
     }
 
-    private void buildDbBatchArgs(
+    private List<String> buildDbBatchArgs(
             List<String> keys,
             List<String> values,
             List<Object[]> dbBatchArgs
     ) {
+        List<String> processedKeys = new ArrayList<>();
+
         for (int i = 0; i < keys.size(); i++) {
             String key = keys.get(i);
             String countStr = values.get(i);
@@ -207,6 +209,7 @@ public class StatsSyncService {
                 String id = StatsKeyUtils.extractId(key);
 
                 dbBatchArgs.add(new Object[]{count, id});
+                processedKeys.add(key);
 
             } catch (NumberFormatException e) {
                 log.warn("[Sync] 숫자 변환 실패 - Key: {}, Value: {}", key, countStr);
@@ -214,6 +217,8 @@ public class StatsSyncService {
                 log.warn("[Sync] ID 추출 실패 - Key: {}", key);
             }
         }
+
+        return processedKeys;
     }
 
     private void flushBatchUpdateToDb(
