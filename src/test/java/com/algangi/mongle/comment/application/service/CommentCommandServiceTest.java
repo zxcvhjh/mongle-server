@@ -1,5 +1,6 @@
 package com.algangi.mongle.comment.application.service;
 
+import com.algangi.mongle.comment.application.event.CommentDeletedEvent;
 import com.algangi.mongle.comment.domain.model.Comment;
 import com.algangi.mongle.comment.domain.repository.CommentRepository;
 import com.algangi.mongle.comment.domain.service.CommentDomainService;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -24,6 +26,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -77,6 +80,7 @@ class CommentCommandServiceTest {
             "author-id",
             false
         );
+        ReflectionTestUtils.setField(testPost, "id", "post-id-abc");
 
         // 일반 댓글 생성 (member 설정됨)
         normalComment = Comment.createParentComment(
@@ -126,7 +130,12 @@ class CommentCommandServiceTest {
 
         // then
         verify(commentDomainService, times(1)).deleteComment(anonymousComment);
-        verify(eventPublisher, times(1)).publishEvent(any());
+        ArgumentCaptor<CommentDeletedEvent> eventCaptor = ArgumentCaptor.forClass(CommentDeletedEvent.class);
+        verify(eventPublisher, times(1)).publishEvent(eventCaptor.capture());
+
+        CommentDeletedEvent capturedEvent = eventCaptor.getValue();
+        assertThat(capturedEvent.commentId()).isEqualTo("comment-id-2");
+        assertThat(capturedEvent.postId()).isEqualTo("post-id-abc");
     }
 
     @Test
@@ -141,7 +150,12 @@ class CommentCommandServiceTest {
 
         // then
         verify(commentDomainService, times(1)).deleteComment(normalComment);
-        verify(eventPublisher, times(1)).publishEvent(any());
+        ArgumentCaptor<CommentDeletedEvent> eventCaptor = ArgumentCaptor.forClass(CommentDeletedEvent.class);
+        verify(eventPublisher, times(1)).publishEvent(eventCaptor.capture());
+
+        CommentDeletedEvent capturedEvent = eventCaptor.getValue();
+        assertThat(capturedEvent.commentId()).isEqualTo("comment-id-1");
+        assertThat(capturedEvent.postId()).isEqualTo("post-id-abc");
     }
 
     @Test
