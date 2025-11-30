@@ -15,7 +15,7 @@ public class MemberViewedPostEventListener {
 
     private final PostViewLogRepository postViewLogRepository;
 
-    @Async("persistenceTaskExecutor")
+    /*@Async("persistenceTaskExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleMemberViewedPost(MemberViewedPostEvent event) {
         try {
@@ -28,5 +28,5 @@ public class MemberViewedPostEventListener {
         } catch (Exception e) {
             log.error("게시물 조회 기록 저장 중 DB 오류 발생. MemberId={}, PostId={}", event.memberId(), event.postId(), e);
         }
-    }
+    }*/
 }

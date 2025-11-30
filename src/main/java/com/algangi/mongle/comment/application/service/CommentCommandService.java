@@ -83,7 +83,7 @@ public class CommentCommandService {
         );
 
         commentDomainService.deleteComment(comment);
-        eventPublisher.publishEvent(new CommentDeletedEvent(comment.getPost().getId()));
+        eventPublisher.publishEvent(new CommentDeletedEvent(comment.getPost().getId(), comment.getId()));
     }
 
     private boolean isAnonymous(CommentCreateRequest dto) {

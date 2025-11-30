@@ -15,11 +15,11 @@ public class PostViewedEventListener {
 
     private final PostRepository postRepository;
 
-    @Async("persistenceTaskExecutor")
+    /*@Async("persistenceTaskExecutor")
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handlePostView(PostViewedEvent event) {
         postRepository.incrementViewCount(event.postId());
-    }
+    }*/
 
 }

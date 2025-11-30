@@ -11,7 +11,7 @@ public enum StatsKeyPrefix {
     LIKES("likes"),
     DISLIKES("dislikes"),
     REACTIONS("reactions"),
-    COMMENT_RANKING_BY_LIKES("ranking:comments_by_likes:post"),
+    COMMENT_RANKING_BY_LIKES("ranking::comments_by_likes::post"),
     TRACKING("tracking");
 
     private final String prefix;

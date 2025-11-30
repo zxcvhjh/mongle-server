@@ -24,6 +24,7 @@ public class PostStatsListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleCommentDeletion(CommentDeletedEvent event) {
         contentStatsService.decrementPostCommentCount(event.postId());
+        contentStatsService.cleanupStatsForDeletedComment(event.commentId(), event.postId());
     }
 
 }

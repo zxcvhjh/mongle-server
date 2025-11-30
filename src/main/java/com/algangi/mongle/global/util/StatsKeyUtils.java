@@ -9,7 +9,7 @@ import org.springframework.util.StringUtils;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class StatsKeyUtils {
 
-    private static final String SEPARATOR = ":";
+    private static final String SEPARATOR = "::";
 
     public static String counterKey(StatsKeyPrefix prefix, TargetType targetType, String id) {
         return String.join(SEPARATOR, prefix.getPrefix(), targetType.getLowerCase(), id);

@@ -1,8 +1,6 @@
 package com.algangi.mongle.member.application.service;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import com.algangi.mongle.postViewLog.application.service.PostViewLogService;
 import org.springframework.stereotype.Service;
@@ -27,7 +25,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class WithdrawalCleanupService {
 
-    private final ContentManagementService contentManagementService;
+    // private final ContentManagementService contentManagementService;
     private final ContentStatsService contentStatsService;
     private final MemberRepository memberRepository;
     private final ReactionRepository reactionRepository;
@@ -58,20 +56,21 @@ public class WithdrawalCleanupService {
         logoutService.logout(memberId);
 
         // 필요한 테이터 조회
-        List<String> postIds = postRepository.findAllIdsByMemberId(memberId);
-        List<ReactionCleanupDto> reactions = reactionRepositoryCustom.findAllReactionCleanupData(
-            memberId);
-        List<Comment> comments = commentRepository.findAllByMember_MemberId(memberId);
-        List<String> commentIds = comments.stream().map(Comment::getId).toList();
+        // List<String> postIds = postRepository.findAllIdsByMemberId(memberId);
+        // List<ReactionCleanupDto> reactions = reactionRepositoryCustom.findAllReactionCleanupData(
+           //  memberId);
+        // List<Comment> comments = commentRepository.findAllByMember_MemberId(memberId);
+        // List<String> commentIds = comments.stream().map(Comment::getId).toList();
 
         // 댓글 처리에 필요한 Map 가공
-        Map<String, Long> postCommentCountDelta = comments.stream()
-            .collect(Collectors.groupingBy(c -> c.getPost().getId(), Collectors.counting()));
-        Map<String, List<String>> commentsByPost = comments.stream()
-            .collect(Collectors.groupingBy(c -> c.getPost().getId(),
-                Collectors.mapping(Comment::getId, Collectors.toList())));
+        // Map<String, Long> postCommentCountDelta = comments.stream()
+           //  .collect(Collectors.groupingBy(c -> c.getPost().getId(), Collectors.counting()));
+        // Map<String, List<String>> commentsByPost = comments.stream()
+           //  .collect(Collectors.groupingBy(c -> c.getPost().getId(),
+              //   Collectors.mapping(Comment::getId, Collectors.toList())));
 
         // 리액션 정리
+        List<ReactionCleanupDto> reactions = reactionRepositoryCustom.findAllReactionCleanupData(memberId);
         contentStatsService.removeReactionsFromRedis(memberId, reactions);
         reactionRepository.deleteAllByMemberId(memberId);
 
@@ -79,12 +78,23 @@ public class WithdrawalCleanupService {
         postViewLogService.cleanupViewLogs(memberId);
 
         // 게시글, 댓글 정리
-        contentManagementService.cleanupRedisDataForComments(commentIds, postCommentCountDelta,
-                commentsByPost);
-        contentManagementService.cleanupRedisDataForPosts(postIds);
+        // contentManagementService.cleanupRedisDataForComments(commentIds, postCommentCountDelta,
+                // commentsByPost);
 
-        dbService.updateWithdrawnUserCommentsInDb(commentIds, postCommentCountDelta);
+        List<Comment> comments = commentRepository.findAllByMember_MemberId(memberId);
+        List<String> commentIds = comments.stream().map(Comment::getId).toList();
+        for (Comment comment : comments) {
+            contentStatsService.cleanupStatsForDeletedComment(comment.getId(), comment.getPost().getId());
+        }
+
+        List<String> postIds = postRepository.findAllIdsByMemberId(memberId);
+        for (String postId : postIds) {
+            contentStatsService.cleanupStatsForDeletedPost(postId);
+        }
+
+        dbService.updateWithdrawnUserCommentsInDb(commentIds);
         dbService.updateWithdrawnUserPostsInDb(postIds);
+
         postRepository.unlinkMemberFromPosts(memberId);
         commentRepository.unlinkMemberFromComments(memberId);
 
