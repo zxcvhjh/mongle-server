@@ -31,8 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * CommentCommandService 테스트
- * NPE 및 권한 검증 로직 테스트
+ * CommentCommandService 테스트 NPE 및 권한 검증 로직 테스트
  */
 @ExtendWith(MockitoExtension.class)
 class CommentCommandServiceTest {
@@ -130,6 +129,7 @@ class CommentCommandServiceTest {
 
         // then
         verify(commentDomainService, times(1)).deleteComment(anonymousComment);
+
         ArgumentCaptor<CommentDeletedEvent> eventCaptor = ArgumentCaptor.forClass(CommentDeletedEvent.class);
         verify(eventPublisher, times(1)).publishEvent(eventCaptor.capture());
 
@@ -150,6 +150,7 @@ class CommentCommandServiceTest {
 
         // then
         verify(commentDomainService, times(1)).deleteComment(normalComment);
+        
         ArgumentCaptor<CommentDeletedEvent> eventCaptor = ArgumentCaptor.forClass(CommentDeletedEvent.class);
         verify(eventPublisher, times(1)).publishEvent(eventCaptor.capture());
 
@@ -162,23 +163,29 @@ class CommentCommandServiceTest {
     @DisplayName("일반 댓글을 다른 사용자가 삭제 시도하면 권한 없음 예외 발생")
     void deleteNormalComment_ByOtherUser_ThrowsAccessDenied() {
         // given
-        Member otherMember = createMember("other-user-id", "otherUser", MemberRole.USER, MemberStatus.ACTIVE);
+        Member otherMember = createMember("other-user-id", "otherUser", MemberRole.USER,
+            MemberStatus.ACTIVE);
         when(memberFinder.getMemberOrThrow("other-user-id")).thenReturn(otherMember);
         when(commentFinder.getCommentOrThrow("comment-id-1")).thenReturn(normalComment);
 
         // when & then
-        assertThatThrownBy(() -> commentCommandService.deleteComment("comment-id-1", "other-user-id"))
+        assertThatThrownBy(
+            () -> commentCommandService.deleteComment("comment-id-1", "other-user-id"))
             .isInstanceOf(ApplicationException.class)
             .hasFieldOrPropertyWithValue("errorCode", CommentErrorCode.COMMENT_ACCESS_DENIED);
 
         verify(commentDomainService, never()).deleteComment(any());
     }
 
-    private Member createMember(String memberId, String nickname, MemberRole role, MemberStatus status) {
+    private Member createMember(String memberId, String nickname, MemberRole role,
+        MemberStatus status) {
         Member member = switch (role) {
             case USER -> Member.createUser("test@example.com", "encodedPassword", nickname, null);
-            case BOOTH -> Member.createBoothAccount(memberId, "test@example.com", "encodedPassword", nickname, null);
-            case ADMIN -> Member.createAdmin(memberId, "test@example.com", nickname, null, "encodedPassword");
+            case BOOTH ->
+                Member.createBoothAccount(memberId, "test@example.com", "encodedPassword", nickname,
+                    null);
+            case ADMIN ->
+                Member.createAdmin(memberId, "test@example.com", nickname, null, "encodedPassword");
         };
         ReflectionTestUtils.setField(member, "memberId", memberId);
         ReflectionTestUtils.setField(member, "status", status);
